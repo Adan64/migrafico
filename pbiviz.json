@@ -1,1 +1,26 @@
-{"visual":{"name":"miGrafico","displayName":"MiGrafico","guid":"miGraficoD81868EB2C334CF2ABC71E2270886ADB","visualClassName":"Visual","version":"1.0.0.0","description":"","supportUrl":"","gitHubUrl":""},"apiVersion":"5.3.0","author":{"name":"","email":""},"assets":{"icon":"assets/icon.png"},"externalJS":null,"style":"style/visual.less","capabilities":"capabilities.json","dependencies":null,"stringResources":[],"version":"1.0.0.0"}
+{
+  "visual": {
+    "name": "miGrafico",
+    "displayName": "MiGrafico",
+    "guid": "miGraficoD81868EB2C334CF2ABC71E2270886ADB",
+    "visualClassName": "Visual",
+    "version": "1.0.0.0",
+    "description": "Grafico personalizado",
+    "supportUrl": "",
+    "gitHubUrl": ""
+  },
+  "apiVersion": "5.3.0",
+  "author": {
+    "name": "Adan",
+    "email": "badan4074@gmail.com"
+  },
+  "assets": {
+    "icon": "assets/icon.png"
+  },
+  "externalJS": null,
+  "style": "style/visual.less",
+  "capabilities": "capabilities.json",
+  "dependencies": null,
+  "stringResources": [],
+  "version": "1.0.0.0"
+}

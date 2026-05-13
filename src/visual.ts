@@ -45,12 +45,24 @@ export class Visual implements IVisual {
         );
 
         const dataView = options.dataViews?.[0];
-        if (!dataView?.categorical) return;
+        const categorical = dataView?.categorical;
+        const categories = categorical?.categories?.[0]?.values ?? [];
+        const values = categorical?.values?.[0]?.values ?? [];
 
-        const categorical = dataView.categorical;
-        const categories = categorical.categories?.[0]?.values ?? [];
-        const values = categorical.values?.[0]?.values ?? [];
-        if (categories.length === 0) return;
+        // Manejo del estado sin datos
+        if (!categorical || categories.length === 0 || values.length === 0) {
+            this.container.innerHTML = `
+                <div style="padding: 20px; text-align: center; font-family: 'Segoe UI', sans-serif; color: #777; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                    <h3 style="margin-bottom: 8px;">Esperando datos</h3>
+                    <p style="font-size: 14px; margin: 0;">Por favor, añade un campo en <b>Categoría</b> y un campo en <b>Valor</b> en el panel de datos.</p>
+                </div>
+            `;
+            if (this.vegaResult) {
+                this.vegaResult.view.finalize();
+                this.vegaResult = null;
+            }
+            return;
+        }
 
         const bars: BarDatum[] = categories
             .map((cat, i) => ({ category: String(cat), value: Number(values[i]) || 0 }))
@@ -71,16 +83,28 @@ export class Visual implements IVisual {
             });
         }
 
-        const { width, height } = options.viewport;
+        // Restamos unos pocos píxeles para asegurar que no salgan barras de desplazamiento
+        const w = Math.max(options.viewport.width - 10, 10);
+        const h = Math.max(options.viewport.height - 10, 10);
         const barColor = this.formattingSettings.dataPointCard.barColor.value.value || "#4A90D9";
         const maxValue = Math.max(...bars.map(b => b.value));
+        const yMax = maxValue > 0 ? maxValue * 1.35 : 10;
 
-        const spec = this.buildSpec(bars, comparisons, width, height, maxValue * 1.35, barColor);
-
+        // Actualización dinámica si el gráfico ya existe
         if (this.vegaResult) {
-            this.vegaResult.view.finalize();
-            this.vegaResult = null;
+            this.vegaResult.view
+                .signal("width", w)
+                .signal("height", h)
+                .signal("barColor", barColor)
+                .signal("yMax", yMax)
+                .data("bars", bars)
+                .data("comparisons", comparisons)
+                .runAsync()
+                .catch(console.error);
+            return;
         }
+
+        const spec = this.buildSpec(bars, comparisons, w, h, yMax, barColor);
         this.container.innerHTML = "";
 
         embed(this.container, spec as any, { actions: false, renderer: "svg" })
@@ -96,16 +120,18 @@ export class Visual implements IVisual {
         yMax: number,
         barColor: string
     ): object {
-        const pad = { left: 40, right: 12, top: 16, bottom: 36 };
-        const w = Math.max(width - pad.left - pad.right, 10);
-        const h = Math.max(height - pad.top - pad.bottom, 10);
-
         return {
             $schema: "https://vega.github.io/schema/vega/v5.json",
-            width: w,
-            height: h,
-            padding: pad,
+            width: width,
+            height: height,
+            autosize: { type: "fit", contains: "padding" },
+            padding: 5,
             background: null,
+
+            signals: [
+                { name: "barColor", value: barColor },
+                { name: "yMax", value: yMax }
+            ],
 
             data: [
                 { name: "bars", values: bars },
@@ -124,9 +150,10 @@ export class Visual implements IVisual {
                 {
                     name: "y",
                     type: "linear",
-                    domain: [0, yMax],
+                    domain: [0, { signal: "yMax" }],
                     range: "height",
-                    reverse: true
+                    reverse: true,
+                    nice: true
                 }
             ],
 
@@ -134,12 +161,16 @@ export class Visual implements IVisual {
                 {
                     orient: "bottom",
                     scale: "x",
-                    domain: false,
+                    domain: true,
+                    domainColor: "#ccc",
                     ticks: false,
                     labelPadding: 8,
                     labelColor: "#555",
                     labelFontSize: 12,
-                    labelFont: "Segoe UI, sans-serif"
+                    labelFont: "Segoe UI, sans-serif",
+                    labelAngle: -35,
+                    labelOverlap: "greedy",
+                    labelAlign: "right"
                 },
                 {
                     orient: "left",
@@ -164,16 +195,18 @@ export class Visual implements IVisual {
                     from: { data: "bars" },
                     encode: {
                         enter: {
+                            cornerRadiusTopLeft: { value: 4 },
+                            cornerRadiusTopRight: { value: 4 }
+                        },
+                        update: {
                             x: { scale: "x", field: "category" },
                             width: { scale: "x", band: 1 },
                             y: { scale: "y", field: "value" },
                             y2: { scale: "y", value: 0 },
-                            fill: { value: barColor },
-                            cornerRadiusTopLeft: { value: 4 },
-                            cornerRadiusTopRight: { value: 4 }
+                            fill: { signal: "barColor" },
+                            fillOpacity: { value: 1 }
                         },
-                        hover: { fillOpacity: { value: 0.8 } },
-                        update: { fillOpacity: { value: 1 } }
+                        hover: { fillOpacity: { value: 0.8 } }
                     }
                 },
 
@@ -183,14 +216,16 @@ export class Visual implements IVisual {
                     from: { data: "bars" },
                     encode: {
                         enter: {
-                            x: { signal: "scale('x', datum.category) + bandwidth('x') / 2" },
-                            y: { scale: "y", field: "value", offset: -6 },
-                            text: { field: "value" },
                             align: { value: "center" },
                             baseline: { value: "bottom" },
                             fill: { value: "#444" },
                             fontSize: { value: 11 },
                             font: { value: "Segoe UI, sans-serif" }
+                        },
+                        update: {
+                            x: { signal: "scale('x', datum.category) + bandwidth('x') / 2" },
+                            y: { scale: "y", field: "value", offset: -6 },
+                            text: { field: "value" }
                         }
                     }
                 },
@@ -201,11 +236,13 @@ export class Visual implements IVisual {
                     from: { data: "comparisons" },
                     encode: {
                         enter: {
+                            strokeWidth: { value: 1.5 }
+                        },
+                        update: {
                             x: { signal: "scale('x', datum.x1) + bandwidth('x') / 2" },
                             x2: { signal: "scale('x', datum.x2) + bandwidth('x') / 2" },
                             y: { signal: "scale('y', datum.maxVal) - 22" },
-                            stroke: { signal: "datum.direction === 'up' ? '#27ae60' : '#e74c3c'" },
-                            strokeWidth: { value: 1.5 }
+                            stroke: { signal: "datum.direction === 'up' ? '#27ae60' : '#e74c3c'" }
                         }
                     }
                 },
@@ -216,12 +253,14 @@ export class Visual implements IVisual {
                     from: { data: "comparisons" },
                     encode: {
                         enter: {
+                            strokeWidth: { value: 1.5 }
+                        },
+                        update: {
                             x: { signal: "scale('x', datum.x1) + bandwidth('x') / 2" },
                             x2: { signal: "scale('x', datum.x1) + bandwidth('x') / 2" },
                             y: { signal: "scale('y', datum.maxVal) - 14" },
                             y2: { signal: "scale('y', datum.maxVal) - 22" },
-                            stroke: { signal: "datum.direction === 'up' ? '#27ae60' : '#e74c3c'" },
-                            strokeWidth: { value: 1.5 }
+                            stroke: { signal: "datum.direction === 'up' ? '#27ae60' : '#e74c3c'" }
                         }
                     }
                 },
@@ -232,12 +271,14 @@ export class Visual implements IVisual {
                     from: { data: "comparisons" },
                     encode: {
                         enter: {
+                            strokeWidth: { value: 1.5 }
+                        },
+                        update: {
                             x: { signal: "scale('x', datum.x2) + bandwidth('x') / 2" },
                             x2: { signal: "scale('x', datum.x2) + bandwidth('x') / 2" },
                             y: { signal: "scale('y', datum.maxVal) - 14" },
                             y2: { signal: "scale('y', datum.maxVal) - 22" },
-                            stroke: { signal: "datum.direction === 'up' ? '#27ae60' : '#e74c3c'" },
-                            strokeWidth: { value: 1.5 }
+                            stroke: { signal: "datum.direction === 'up' ? '#27ae60' : '#e74c3c'" }
                         }
                     }
                 },
@@ -248,17 +289,19 @@ export class Visual implements IVisual {
                     from: { data: "comparisons" },
                     encode: {
                         enter: {
+                            align: { value: "center" },
+                            baseline: { value: "bottom" },
+                            fontSize: { value: 11 },
+                            fontWeight: { value: "600" },
+                            font: { value: "Segoe UI, sans-serif" }
+                        },
+                        update: {
                             x: {
                                 signal: "(scale('x', datum.x1) + bandwidth('x') / 2 + scale('x', datum.x2) + bandwidth('x') / 2) / 2"
                             },
                             y: { signal: "scale('y', datum.maxVal) - 26" },
                             text: { field: "label" },
-                            align: { value: "center" },
-                            baseline: { value: "bottom" },
-                            fill: { signal: "datum.direction === 'up' ? '#27ae60' : '#e74c3c'" },
-                            fontSize: { value: 11 },
-                            fontWeight: { value: "600" },
-                            font: { value: "Segoe UI, sans-serif" }
+                            fill: { signal: "datum.direction === 'up' ? '#27ae60' : '#e74c3c'" }
                         }
                     }
                 }
