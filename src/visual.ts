@@ -19,6 +19,8 @@ interface BarDatum {
 interface ComparisonDatum {
     x1: string;
     x2: string;
+    val1: number;
+    val2: number;
     maxVal: number;
     pct: number;
     direction: "up" | "down";
@@ -77,6 +79,8 @@ export class Visual implements IVisual {
             comparisons.push({
                 x1: bars[i - 1].category,
                 x2: bars[i].category,
+                val1: prev,
+                val2: curr,
                 maxVal: Math.max(prev, curr),
                 pct,
                 direction: pct >= 0 ? "up" : "down",
@@ -212,6 +216,80 @@ export class Visual implements IVisual {
                     }
                 },
 
+                // Línea horizontal del bracket entre barras
+                {
+                    type: "rule",
+                    from: { data: "comparisons" },
+                    encode: {
+                        enter: {
+                            strokeWidth: { value: 1.5 }
+                        },
+                        update: {
+                            x: { signal: "scale('x', datum.x1) + bandwidth('x') / 2" },
+                            x2: { signal: "scale('x', datum.x2) + bandwidth('x') / 2" },
+                            y: { signal: "scale('y', datum.maxVal) - 35" },
+                            stroke: { signal: "datum.direction === 'up' ? '#27ae60' : '#e74c3c'" }
+                        }
+                    }
+                },
+
+                // Línea vertical izquierda del bracket (toca la barra 1)
+                {
+                    type: "rule",
+                    from: { data: "comparisons" },
+                    encode: {
+                        enter: {
+                            strokeWidth: { value: 1.5 }
+                        },
+                        update: {
+                            x: { signal: "scale('x', datum.x1) + bandwidth('x') / 2" },
+                            x2: { signal: "scale('x', datum.x1) + bandwidth('x') / 2" },
+                            y: { signal: "scale('y', datum.val1)" },
+                            y2: { signal: "scale('y', datum.maxVal) - 35" },
+                            stroke: { signal: "datum.direction === 'up' ? '#27ae60' : '#e74c3c'" }
+                        }
+                    }
+                },
+
+                // Línea vertical derecha del bracket (toca la barra 2)
+                {
+                    type: "rule",
+                    from: { data: "comparisons" },
+                    encode: {
+                        enter: {
+                            strokeWidth: { value: 1.5 }
+                        },
+                        update: {
+                            x: { signal: "scale('x', datum.x2) + bandwidth('x') / 2" },
+                            x2: { signal: "scale('x', datum.x2) + bandwidth('x') / 2" },
+                            y: { signal: "scale('y', datum.val2)" },
+                            y2: { signal: "scale('y', datum.maxVal) - 35" },
+                            stroke: { signal: "datum.direction === 'up' ? '#27ae60' : '#e74c3c'" }
+                        }
+                    }
+                },
+
+                // Fondo blanco para la etiqueta de valor sobre cada barra (evita que la línea lo tache)
+                {
+                    type: "text",
+                    from: { data: "bars" },
+                    encode: {
+                        enter: {
+                            align: { value: "center" },
+                            baseline: { value: "bottom" },
+                            stroke: { value: "#ffffff" },
+                            strokeWidth: { value: 4 },
+                            fontSize: { value: 11 },
+                            font: { value: "Segoe UI, sans-serif" }
+                        },
+                        update: {
+                            x: { signal: "scale('x', datum.category) + bandwidth('x') / 2" },
+                            y: { scale: "y", field: "value", offset: -6 },
+                            text: { field: "value" }
+                        }
+                    }
+                },
+
                 // Etiqueta de valor sobre cada barra
                 {
                     type: "text",
@@ -232,59 +310,6 @@ export class Visual implements IVisual {
                     }
                 },
 
-                // Línea horizontal del bracket entre barras
-                {
-                    type: "rule",
-                    from: { data: "comparisons" },
-                    encode: {
-                        enter: {
-                            strokeWidth: { value: 1.5 }
-                        },
-                        update: {
-                            x: { signal: "scale('x', datum.x1) + bandwidth('x') / 2" },
-                            x2: { signal: "scale('x', datum.x2) + bandwidth('x') / 2" },
-                            y: { signal: "scale('y', datum.maxVal) - 22" },
-                            stroke: { signal: "datum.direction === 'up' ? '#27ae60' : '#e74c3c'" }
-                        }
-                    }
-                },
-
-                // Tick vertical izquierdo del bracket
-                {
-                    type: "rule",
-                    from: { data: "comparisons" },
-                    encode: {
-                        enter: {
-                            strokeWidth: { value: 1.5 }
-                        },
-                        update: {
-                            x: { signal: "scale('x', datum.x1) + bandwidth('x') / 2" },
-                            x2: { signal: "scale('x', datum.x1) + bandwidth('x') / 2" },
-                            y: { signal: "scale('y', datum.maxVal) - 14" },
-                            y2: { signal: "scale('y', datum.maxVal) - 22" },
-                            stroke: { signal: "datum.direction === 'up' ? '#27ae60' : '#e74c3c'" }
-                        }
-                    }
-                },
-
-                // Tick vertical derecho del bracket
-                {
-                    type: "rule",
-                    from: { data: "comparisons" },
-                    encode: {
-                        enter: {
-                            strokeWidth: { value: 1.5 }
-                        },
-                        update: {
-                            x: { signal: "scale('x', datum.x2) + bandwidth('x') / 2" },
-                            x2: { signal: "scale('x', datum.x2) + bandwidth('x') / 2" },
-                            y: { signal: "scale('y', datum.maxVal) - 14" },
-                            y2: { signal: "scale('y', datum.maxVal) - 22" },
-                            stroke: { signal: "datum.direction === 'up' ? '#27ae60' : '#e74c3c'" }
-                        }
-                    }
-                },
-
                 // Etiqueta de porcentaje (▲/▼ + %)
                 {
                     type: "text",
@@ -301,7 +326,7 @@ export class Visual implements IVisual {
                             x: {
                                 signal: "(scale('x', datum.x1) + bandwidth('x') / 2 + scale('x', datum.x2) + bandwidth('x') / 2) / 2"
                             },
-                            y: { signal: "scale('y', datum.maxVal) - 26" },
+                            y: { signal: "scale('y', datum.maxVal) - 40" },
                             text: { field: "label" },
                             fill: { signal: "datum.direction === 'up' ? '#27ae60' : '#e74c3c'" }
                         }
