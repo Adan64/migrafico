@@ -51,6 +51,7 @@ export class Visual implements IVisual {
 
         // Manejo del estado sin datos
         if (!categorical || categories.length === 0 || values.length === 0) {
+            // eslint-disable-next-line powerbi-visuals/no-inner-outer-html
             this.container.innerHTML = `
                 <div style="padding: 20px; text-align: center; font-family: 'Segoe UI', sans-serif; color: #777; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center;">
                     <h3 style="margin-bottom: 8px;">Esperando datos</h3>
@@ -105,7 +106,9 @@ export class Visual implements IVisual {
         }
 
         const spec = this.buildSpec(bars, comparisons, w, h, yMax, barColor);
-        this.container.innerHTML = "";
+        while (this.container.firstChild) {
+            this.container.removeChild(this.container.firstChild);
+        }
 
         embed(this.container, spec as any, { actions: false, renderer: "svg" })
             .then(result => { this.vegaResult = result; })
