@@ -5,8 +5,8 @@ import VisualConstructorOptions = powerbiVisualsApi.extensibility.visual.VisualC
 import DialogConstructorOptions = powerbiVisualsApi.extensibility.visual.DialogConstructorOptions;
 var powerbiKey: any = "powerbi";
 var powerbi: any = window[powerbiKey];
-var miGraficoD81868EB2C334CF2ABC71E2270886ADB_DEBUG: IVisualPlugin = {
-    name: 'miGraficoD81868EB2C334CF2ABC71E2270886ADB_DEBUG',
+var miGraficoD81868EB2C334CF2ABC71E2270886ADB: IVisualPlugin = {
+    name: 'miGraficoD81868EB2C334CF2ABC71E2270886ADB',
     displayName: 'MiGrafico',
     class: 'Visual',
     apiVersion: '5.3.0',
@@ -27,6 +27,6 @@ var miGraficoD81868EB2C334CF2ABC71E2270886ADB_DEBUG: IVisualPlugin = {
 if (typeof powerbi !== "undefined") {
     powerbi.visuals = powerbi.visuals || {};
     powerbi.visuals.plugins = powerbi.visuals.plugins || {};
-    powerbi.visuals.plugins["miGraficoD81868EB2C334CF2ABC71E2270886ADB_DEBUG"] = miGraficoD81868EB2C334CF2ABC71E2270886ADB_DEBUG;
+    powerbi.visuals.plugins["miGraficoD81868EB2C334CF2ABC71E2270886ADB"] = miGraficoD81868EB2C334CF2ABC71E2270886ADB;
 }
-export default miGraficoD81868EB2C334CF2ABC71E2270886ADB_DEBUG;
+export default miGraficoD81868EB2C334CF2ABC71E2270886ADB;
