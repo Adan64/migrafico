@@ -9,7 +9,7 @@ var miGraficoD81868EB2C334CF2ABC71E2270886ADB_DEBUG: IVisualPlugin = {
     name: 'miGraficoD81868EB2C334CF2ABC71E2270886ADB_DEBUG',
     displayName: 'MiGrafico',
     class: 'Visual',
-    apiVersion: '5.11.0',
+    apiVersion: '5.3.0',
     create: (options?: VisualConstructorOptions) => {
         if (Visual) {
             return new Visual(options);

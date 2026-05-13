@@ -155,7 +155,6 @@ export class Visual implements IVisual {
                     type: "linear",
                     domain: [0, { signal: "yMax" }],
                     range: "height",
-                    reverse: true,
                     nice: true
                 }
             ],
