@@ -4,7 +4,7 @@
     "displayName": "MiGrafico",
     "guid": "miGraficoD81868EB2C334CF2ABC71E2270886ADB",
     "visualClassName": "Visual",
-    "version": "1.0.0.0",
+    "version": "1.1.0.0",
     "description": "Grafico personalizado",
     "supportUrl": "https://github.com/Adan64/migrafico",
     "gitHubUrl": "https://github.com/Adan64/migrafico"
@@ -22,5 +22,5 @@
   "capabilities": "capabilities.json",
   "dependencies": null,
   "stringResources": [],
-  "version": "1.0.0.0"
+  "version": "1.1.0.0"
 }
