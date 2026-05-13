@@ -8,12 +8,15 @@ import "./../style/visual.less";
 import VisualConstructorOptions = powerbi.extensibility.visual.VisualConstructorOptions;
 import VisualUpdateOptions = powerbi.extensibility.visual.VisualUpdateOptions;
 import IVisual = powerbi.extensibility.visual.IVisual;
+import ISelectionId = powerbi.visuals.ISelectionId;
+import ISelectionManager = powerbi.extensibility.ISelectionManager;
 
 import { VisualFormattingSettingsModel } from "./settings";
 
 interface BarDatum {
     category: string;
     value: number;
+    selectionId: ISelectionId;
 }
 
 interface ComparisonDatum {
@@ -32,8 +35,12 @@ export class Visual implements IVisual {
     private formattingSettings: VisualFormattingSettingsModel;
     private formattingSettingsService: FormattingSettingsService;
     private vegaResult: Result | null = null;
+    private selectionManager: ISelectionManager;
+    private host: powerbi.extensibility.visual.IVisualHost;
 
     constructor(options: VisualConstructorOptions) {
+        this.host = options.host;
+        this.selectionManager = this.host.createSelectionManager();
         this.formattingSettingsService = new FormattingSettingsService();
         this.container = document.createElement("div");
         this.container.className = "visual-container";
@@ -48,11 +55,11 @@ export class Visual implements IVisual {
 
         const dataView = options.dataViews?.[0];
         const categorical = dataView?.categorical;
-        const categories = categorical?.categories?.[0]?.values ?? [];
-        const values = categorical?.values?.[0]?.values ?? [];
+        const categories = categorical?.categories?.[0];
+        const values = categorical?.values?.[0];
 
         // Manejo del estado sin datos
-        if (!categorical || categories.length === 0 || values.length === 0) {
+        if (!categorical || !categories || !values || !categories.values || !values.values || categories.values.length === 0 || values.values.length === 0) {
             // eslint-disable-next-line powerbi-visuals/no-inner-outer-html
             this.container.innerHTML = `
                 <div style="padding: 20px; text-align: center; font-family: 'Segoe UI', sans-serif; color: #777; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center;">
@@ -67,8 +74,17 @@ export class Visual implements IVisual {
             return;
         }
 
-        const bars: BarDatum[] = categories
-            .map((cat, i) => ({ category: String(cat), value: Number(values[i]) || 0 }))
+        const bars: BarDatum[] = categories.values
+            .map((cat, i) => {
+                const selectionId = this.host.createSelectionIdBuilder()
+                    .withCategory(categories, i)
+                    .createSelectionId();
+                return {
+                    category: String(cat),
+                    value: Number(values.values[i]) || 0,
+                    selectionId
+                };
+            })
             .filter(d => d.value !== null && !isNaN(d.value));
 
         const comparisons: ComparisonDatum[] = [];
@@ -91,7 +107,11 @@ export class Visual implements IVisual {
         // Restamos unos pocos píxeles para asegurar que no salgan barras de desplazamiento
         const w = Math.max(options.viewport.width - 10, 10);
         const h = Math.max(options.viewport.height - 10, 10);
-        const barColor = this.formattingSettings.dataPointCard.barColor.value.value || "#4A90D9";
+        const dpCard = this.formattingSettings.dataPointCard;
+        const barColor = dpCard.barColor.value.value || "#4A90D9";
+        const textColor = dpCard.textColor.value.value || "#444444";
+        const positiveColor = dpCard.positiveColor.value.value || "#27ae60";
+        const negativeColor = dpCard.negativeColor.value.value || "#e74c3c";
         const maxValue = Math.max(...bars.map(b => b.value));
         const yMax = maxValue > 0 ? maxValue * 1.35 : 10;
 
@@ -101,6 +121,9 @@ export class Visual implements IVisual {
                 .signal("width", w)
                 .signal("height", h)
                 .signal("barColor", barColor)
+                .signal("textColor", textColor)
+                .signal("positiveColor", positiveColor)
+                .signal("negativeColor", negativeColor)
                 .signal("yMax", yMax)
                 .data("bars", bars)
                 .data("comparisons", comparisons)
@@ -109,13 +132,24 @@ export class Visual implements IVisual {
             return;
         }
 
-        const spec = this.buildSpec(bars, comparisons, w, h, yMax, barColor);
+        const spec = this.buildSpec(bars, comparisons, w, h, yMax, barColor, textColor, positiveColor, negativeColor);
         while (this.container.firstChild) {
             this.container.removeChild(this.container.firstChild);
         }
 
         embed(this.container, spec as any, { actions: false, renderer: "svg" })
-            .then(result => { this.vegaResult = result; })
+            .then(result => { 
+                this.vegaResult = result; 
+                result.view.addEventListener('click', (event, item) => {
+                    if (item && item.datum && item.datum.selectionId) {
+                        const selectionId = item.datum.selectionId as ISelectionId;
+                        const multiSelect = (event as MouseEvent).ctrlKey || (event as MouseEvent).metaKey || (event as MouseEvent).shiftKey;
+                        this.selectionManager.select(selectionId, multiSelect);
+                    } else {
+                        this.selectionManager.clear();
+                    }
+                });
+            })
             .catch(console.error);
     }
 
@@ -125,7 +159,10 @@ export class Visual implements IVisual {
         width: number,
         height: number,
         yMax: number,
-        barColor: string
+        barColor: string,
+        textColor: string,
+        positiveColor: string,
+        negativeColor: string
     ): object {
         return {
             $schema: "https://vega.github.io/schema/vega/v5.json",
@@ -137,6 +174,9 @@ export class Visual implements IVisual {
 
             signals: [
                 { name: "barColor", value: barColor },
+                { name: "textColor", value: textColor },
+                { name: "positiveColor", value: positiveColor },
+                { name: "negativeColor", value: negativeColor },
                 { name: "yMax", value: yMax }
             ],
 
@@ -210,7 +250,8 @@ export class Visual implements IVisual {
                             y: { scale: "y", field: "value" },
                             y2: { scale: "y", value: 0 },
                             fill: { signal: "barColor" },
-                            fillOpacity: { value: 1 }
+                            fillOpacity: { value: 1 },
+                            tooltip: { signal: "{'Categoría': datum.category, 'Valor': datum.value}" }
                         },
                         hover: { fillOpacity: { value: 0.8 } }
                     }
@@ -228,7 +269,7 @@ export class Visual implements IVisual {
                             x: { signal: "scale('x', datum.x1) + bandwidth('x') / 2" },
                             x2: { signal: "scale('x', datum.x2) + bandwidth('x') / 2" },
                             y: { signal: "scale('y', datum.maxVal) - 35" },
-                            stroke: { signal: "datum.direction === 'up' ? '#27ae60' : '#e74c3c'" }
+                            stroke: { signal: "datum.direction === 'up' ? positiveColor : negativeColor" }
                         }
                     }
                 },
@@ -246,7 +287,7 @@ export class Visual implements IVisual {
                             x2: { signal: "scale('x', datum.x1) + bandwidth('x') / 2" },
                             y: { signal: "scale('y', datum.val1)" },
                             y2: { signal: "scale('y', datum.maxVal) - 35" },
-                            stroke: { signal: "datum.direction === 'up' ? '#27ae60' : '#e74c3c'" }
+                            stroke: { signal: "datum.direction === 'up' ? positiveColor : negativeColor" }
                         }
                     }
                 },
@@ -264,7 +305,7 @@ export class Visual implements IVisual {
                             x2: { signal: "scale('x', datum.x2) + bandwidth('x') / 2" },
                             y: { signal: "scale('y', datum.val2)" },
                             y2: { signal: "scale('y', datum.maxVal) - 35" },
-                            stroke: { signal: "datum.direction === 'up' ? '#27ae60' : '#e74c3c'" }
+                            stroke: { signal: "datum.direction === 'up' ? positiveColor : negativeColor" }
                         }
                     }
                 },
@@ -298,14 +339,14 @@ export class Visual implements IVisual {
                         enter: {
                             align: { value: "center" },
                             baseline: { value: "bottom" },
-                            fill: { value: "#444" },
                             fontSize: { value: 11 },
                             font: { value: "Segoe UI, sans-serif" }
                         },
                         update: {
                             x: { signal: "scale('x', datum.category) + bandwidth('x') / 2" },
                             y: { scale: "y", field: "value", offset: -6 },
-                            text: { field: "value" }
+                            text: { field: "value" },
+                            fill: { signal: "textColor" }
                         }
                     }
                 },
@@ -328,7 +369,7 @@ export class Visual implements IVisual {
                             },
                             y: { signal: "scale('y', datum.maxVal) - 40" },
                             text: { field: "label" },
-                            fill: { signal: "datum.direction === 'up' ? '#27ae60' : '#e74c3c'" }
+                            fill: { signal: "datum.direction === 'up' ? positiveColor : negativeColor" }
                         }
                     }
                 }

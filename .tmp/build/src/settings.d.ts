@@ -4,6 +4,9 @@ import FormattingSettingsSlice = formattingSettings.Slice;
 import FormattingSettingsModel = formattingSettings.Model;
 declare class DataPointCardSettings extends FormattingSettingsCard {
     barColor: formattingSettings.ColorPicker;
+    textColor: formattingSettings.ColorPicker;
+    positiveColor: formattingSettings.ColorPicker;
+    negativeColor: formattingSettings.ColorPicker;
     name: string;
     displayName: string;
     slices: Array<FormattingSettingsSlice>;

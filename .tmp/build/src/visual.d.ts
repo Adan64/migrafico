@@ -8,6 +8,8 @@ export declare class Visual implements IVisual {
     private formattingSettings;
     private formattingSettingsService;
     private vegaResult;
+    private selectionManager;
+    private host;
     constructor(options: VisualConstructorOptions);
     update(options: VisualUpdateOptions): void;
     private buildSpec;

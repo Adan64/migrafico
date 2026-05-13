@@ -13,9 +13,27 @@ class DataPointCardSettings extends FormattingSettingsCard {
         value: { value: "#4A90D9" }
     });
 
+    textColor = new formattingSettings.ColorPicker({
+        name: "textColor",
+        displayName: "Text color",
+        value: { value: "#444444" }
+    });
+
+    positiveColor = new formattingSettings.ColorPicker({
+        name: "positiveColor",
+        displayName: "Positive bracket color",
+        value: { value: "#27ae60" }
+    });
+
+    negativeColor = new formattingSettings.ColorPicker({
+        name: "negativeColor",
+        displayName: "Negative bracket color",
+        value: { value: "#e74c3c" }
+    });
+
     name: string = "dataPoint";
     displayName: string = "Data colors";
-    slices: Array<FormattingSettingsSlice> = [this.barColor];
+    slices: Array<FormattingSettingsSlice> = [this.barColor, this.textColor, this.positiveColor, this.negativeColor];
 }
 
 export class VisualFormattingSettingsModel extends FormattingSettingsModel {
