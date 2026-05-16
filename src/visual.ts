@@ -208,7 +208,7 @@ export class Visual implements IVisual {
         yMax: number,
         config: any
     ): object {
-        const signals = [
+        const signals: any[] = [
             { name: "yMax", value: yMax }
         ];
         for (const [key, value] of Object.entries(config)) {
