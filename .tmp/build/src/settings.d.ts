@@ -7,6 +7,14 @@ declare class DataPointCardSettings extends FormattingSettingsCard {
     textColor: formattingSettings.ColorPicker;
     positiveColor: formattingSettings.ColorPicker;
     negativeColor: formattingSettings.ColorPicker;
+    lineThickness: formattingSettings.NumUpDown;
+    lineStyle: formattingSettings.ItemDropdown;
+    symbolStyle: formattingSettings.ItemDropdown;
+    alternateColors: formattingSettings.ToggleSwitch;
+    alternateBarColor: formattingSettings.ColorPicker;
+    showBrackets: formattingSettings.ToggleSwitch;
+    fontSize: formattingSettings.NumUpDown;
+    showFullNumbers: formattingSettings.ToggleSwitch;
     name: string;
     displayName: string;
     slices: Array<FormattingSettingsSlice>;

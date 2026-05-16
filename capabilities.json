@@ -49,6 +49,58 @@
                             }
                         }
                     }
+                },
+                "lineThickness": {
+                    "type": {
+                        "numeric": true
+                    }
+                },
+                "lineStyle": {
+                    "type": {
+                        "enumeration": [
+                            { "value": "solid", "displayName": "Sólida" },
+                            { "value": "dashed", "displayName": "Discontinua" },
+                            { "value": "dotted", "displayName": "Punteada" }
+                        ]
+                    }
+                },
+                "symbolStyle": {
+                    "type": {
+                        "enumeration": [
+                            { "value": "arrows", "displayName": "▲ / ▼" },
+                            { "value": "signs", "displayName": "+ / -" },
+                            { "value": "arrows_thin", "displayName": "↑ / ↓" }
+                        ]
+                    }
+                },
+                "alternateColors": {
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "alternateBarColor": {
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "showBrackets": {
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "fontSize": {
+                    "type": {
+                        "numeric": true
+                    }
+                },
+                "showFullNumbers": {
+                    "type": {
+                        "bool": true
+                    }
                 }
             }
         }

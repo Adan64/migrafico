@@ -16,6 +16,8 @@ import { VisualFormattingSettingsModel } from "./settings";
 interface BarDatum {
     category: string;
     value: number;
+    formattedValue: string;
+    index: number;
     selectionId: ISelectionId;
 }
 
@@ -74,14 +76,39 @@ export class Visual implements IVisual {
             return;
         }
 
+        // Extracción de opciones del panel de formato
+        const dpCard = this.formattingSettings.dataPointCard;
+        const barColor = dpCard.barColor.value.value || "#4A90D9";
+        const textColor = dpCard.textColor.value.value || "#444444";
+        const positiveColor = dpCard.positiveColor.value.value || "#27ae60";
+        const negativeColor = dpCard.negativeColor.value.value || "#e74c3c";
+        const lineThickness = dpCard.lineThickness.value;
+        const lineStyle = dpCard.lineStyle.value.value as string;
+        const symbolStyle = dpCard.symbolStyle.value.value as string;
+        const alternateColors = dpCard.alternateColors.value;
+        const alternateBarColor = dpCard.alternateBarColor.value.value || "#85C1E9";
+        const showBrackets = dpCard.showBrackets.value;
+        const fontSize = dpCard.fontSize.value;
+        const showFullNumbers = dpCard.showFullNumbers.value;
+
+        const formatNumber = (num: number, full: boolean) => {
+            if (full) return num.toLocaleString();
+            if (Math.abs(num) >= 1000000) return (num / 1000000).toFixed(1) + "M";
+            if (Math.abs(num) >= 1000) return (num / 1000).toFixed(1) + "k";
+            return num.toString();
+        };
+
         const bars: BarDatum[] = categories.values
             .map((cat, i) => {
                 const selectionId = this.host.createSelectionIdBuilder()
                     .withCategory(categories, i)
                     .createSelectionId();
+                const val = Number(values.values[i]) || 0;
                 return {
                     category: String(cat),
-                    value: Number(values.values[i]) || 0,
+                    value: val,
+                    formattedValue: formatNumber(val, showFullNumbers),
+                    index: i,
                     selectionId
                 };
             })
@@ -92,6 +119,12 @@ export class Visual implements IVisual {
             const prev = bars[i - 1].value;
             const curr = bars[i].value;
             const pct = prev !== 0 ? ((curr - prev) / Math.abs(prev)) * 100 : 0;
+            
+            let prefix = "";
+            if (symbolStyle === "arrows") prefix = pct >= 0 ? "▲" : "▼";
+            else if (symbolStyle === "signs") prefix = pct >= 0 ? "+" : "-";
+            else if (symbolStyle === "arrows_thin") prefix = pct >= 0 ? "↑" : "↓";
+
             comparisons.push({
                 x1: bars[i - 1].category,
                 x2: bars[i].category,
@@ -100,18 +133,13 @@ export class Visual implements IVisual {
                 maxVal: Math.max(prev, curr),
                 pct,
                 direction: pct >= 0 ? "up" : "down",
-                label: `${pct >= 0 ? "▲" : "▼"} ${Math.abs(pct).toFixed(0)}%`
+                label: `${prefix} ${Math.abs(pct).toFixed(0)}%`
             });
         }
 
         // Restamos unos pocos píxeles para asegurar que no salgan barras de desplazamiento
         const w = Math.max(options.viewport.width - 10, 10);
         const h = Math.max(options.viewport.height - 10, 10);
-        const dpCard = this.formattingSettings.dataPointCard;
-        const barColor = dpCard.barColor.value.value || "#4A90D9";
-        const textColor = dpCard.textColor.value.value || "#444444";
-        const positiveColor = dpCard.positiveColor.value.value || "#27ae60";
-        const negativeColor = dpCard.negativeColor.value.value || "#e74c3c";
         const maxValue = Math.max(...bars.map(b => b.value));
         const yMax = maxValue > 0 ? maxValue * 1.35 : 10;
 
@@ -124,6 +152,13 @@ export class Visual implements IVisual {
                 .signal("textColor", textColor)
                 .signal("positiveColor", positiveColor)
                 .signal("negativeColor", negativeColor)
+                .signal("lineThickness", lineThickness)
+                .signal("lineStyle", lineStyle)
+                .signal("alternateColors", alternateColors)
+                .signal("alternateBarColor", alternateBarColor)
+                .signal("showBrackets", showBrackets)
+                .signal("fontSize", fontSize)
+                .signal("showFullNumbers", showFullNumbers)
                 .signal("yMax", yMax)
                 .data("bars", bars)
                 .data("comparisons", comparisons)
@@ -132,7 +167,7 @@ export class Visual implements IVisual {
             return;
         }
 
-        const spec = this.buildSpec(bars, comparisons, w, h, yMax, barColor, textColor, positiveColor, negativeColor);
+        const spec = this.buildSpec(bars, comparisons, w, h, yMax, barColor, textColor, positiveColor, negativeColor, lineThickness, lineStyle, alternateColors, alternateBarColor, showBrackets, fontSize, showFullNumbers);
         while (this.container.firstChild) {
             this.container.removeChild(this.container.firstChild);
         }
@@ -162,7 +197,14 @@ export class Visual implements IVisual {
         barColor: string,
         textColor: string,
         positiveColor: string,
-        negativeColor: string
+        negativeColor: string,
+        lineThickness: number,
+        lineStyle: string,
+        alternateColors: boolean,
+        alternateBarColor: string,
+        showBrackets: boolean,
+        fontSize: number,
+        showFullNumbers: boolean
     ): object {
         return {
             $schema: "https://vega.github.io/schema/vega/v5.json",
@@ -177,6 +219,13 @@ export class Visual implements IVisual {
                 { name: "textColor", value: textColor },
                 { name: "positiveColor", value: positiveColor },
                 { name: "negativeColor", value: negativeColor },
+                { name: "lineThickness", value: lineThickness },
+                { name: "lineStyle", value: lineStyle },
+                { name: "alternateColors", value: alternateColors },
+                { name: "alternateBarColor", value: alternateBarColor },
+                { name: "showBrackets", value: showBrackets },
+                { name: "fontSize", value: fontSize },
+                { name: "showFullNumbers", value: showFullNumbers },
                 { name: "yMax", value: yMax }
             ],
 
@@ -230,7 +279,7 @@ export class Visual implements IVisual {
                     labelColor: "#999",
                     labelFontSize: 11,
                     labelFont: "Segoe UI, sans-serif",
-                    format: "~s"
+                    format: { signal: "showFullNumbers ? ',' : '~s'" }
                 }
             ],
 
@@ -249,9 +298,9 @@ export class Visual implements IVisual {
                             width: { scale: "x", band: 1 },
                             y: { scale: "y", field: "value" },
                             y2: { scale: "y", value: 0 },
-                            fill: { signal: "barColor" },
+                            fill: { signal: "alternateColors && (datum.index % 2 === 1) ? alternateBarColor : barColor" },
                             fillOpacity: { value: 1 },
-                            tooltip: { signal: "{'Categoría': datum.category, 'Valor': datum.value}" }
+                            tooltip: { signal: "{'Categoría': datum.category, 'Valor': datum.formattedValue}" }
                         },
                         hover: { fillOpacity: { value: 0.8 } }
                     }
@@ -262,10 +311,11 @@ export class Visual implements IVisual {
                     type: "rule",
                     from: { data: "comparisons" },
                     encode: {
-                        enter: {
-                            strokeWidth: { value: 1.5 }
-                        },
+                        enter: {},
                         update: {
+                            opacity: { signal: "showBrackets ? 1 : 0" },
+                            strokeWidth: { signal: "lineThickness" },
+                            strokeDash: { signal: "lineStyle === 'dashed' ? [6, 4] : lineStyle === 'dotted' ? [2, 3] : []" },
                             x: { signal: "scale('x', datum.x1) + bandwidth('x') / 2" },
                             x2: { signal: "scale('x', datum.x2) + bandwidth('x') / 2" },
                             y: { signal: "scale('y', datum.maxVal) - 35" },
@@ -279,10 +329,11 @@ export class Visual implements IVisual {
                     type: "rule",
                     from: { data: "comparisons" },
                     encode: {
-                        enter: {
-                            strokeWidth: { value: 1.5 }
-                        },
+                        enter: {},
                         update: {
+                            opacity: { signal: "showBrackets ? 1 : 0" },
+                            strokeWidth: { signal: "lineThickness" },
+                            strokeDash: { signal: "lineStyle === 'dashed' ? [6, 4] : lineStyle === 'dotted' ? [2, 3] : []" },
                             x: { signal: "scale('x', datum.x1) + bandwidth('x') / 2" },
                             x2: { signal: "scale('x', datum.x1) + bandwidth('x') / 2" },
                             y: { signal: "scale('y', datum.val1)" },
@@ -297,10 +348,11 @@ export class Visual implements IVisual {
                     type: "rule",
                     from: { data: "comparisons" },
                     encode: {
-                        enter: {
-                            strokeWidth: { value: 1.5 }
-                        },
+                        enter: {},
                         update: {
+                            opacity: { signal: "showBrackets ? 1 : 0" },
+                            strokeWidth: { signal: "lineThickness" },
+                            strokeDash: { signal: "lineStyle === 'dashed' ? [6, 4] : lineStyle === 'dotted' ? [2, 3] : []" },
                             x: { signal: "scale('x', datum.x2) + bandwidth('x') / 2" },
                             x2: { signal: "scale('x', datum.x2) + bandwidth('x') / 2" },
                             y: { signal: "scale('y', datum.val2)" },
@@ -320,13 +372,13 @@ export class Visual implements IVisual {
                             baseline: { value: "bottom" },
                             stroke: { value: "#ffffff" },
                             strokeWidth: { value: 4 },
-                            fontSize: { value: 11 },
                             font: { value: "Segoe UI, sans-serif" }
                         },
                         update: {
+                            fontSize: { signal: "fontSize" },
                             x: { signal: "scale('x', datum.category) + bandwidth('x') / 2" },
                             y: { scale: "y", field: "value", offset: -6 },
-                            text: { field: "value" }
+                            text: { field: "formattedValue" }
                         }
                     }
                 },
@@ -339,13 +391,13 @@ export class Visual implements IVisual {
                         enter: {
                             align: { value: "center" },
                             baseline: { value: "bottom" },
-                            fontSize: { value: 11 },
                             font: { value: "Segoe UI, sans-serif" }
                         },
                         update: {
+                            fontSize: { signal: "fontSize" },
                             x: { signal: "scale('x', datum.category) + bandwidth('x') / 2" },
                             y: { scale: "y", field: "value", offset: -6 },
-                            text: { field: "value" },
+                            text: { field: "formattedValue" },
                             fill: { signal: "textColor" }
                         }
                     }
@@ -359,11 +411,12 @@ export class Visual implements IVisual {
                         enter: {
                             align: { value: "center" },
                             baseline: { value: "bottom" },
-                            fontSize: { value: 11 },
                             fontWeight: { value: "600" },
                             font: { value: "Segoe UI, sans-serif" }
                         },
                         update: {
+                            opacity: { signal: "showBrackets ? 1 : 0" },
+                            fontSize: { signal: "fontSize" },
                             x: {
                                 signal: "(scale('x', datum.x1) + bandwidth('x') / 2 + scale('x', datum.x2) + bandwidth('x') / 2) / 2"
                             },
