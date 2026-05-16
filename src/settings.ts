@@ -6,37 +6,68 @@ import FormattingSettingsCard = formattingSettings.SimpleCard;
 import FormattingSettingsSlice = formattingSettings.Slice;
 import FormattingSettingsModel = formattingSettings.Model;
 
-class DataPointCardSettings extends FormattingSettingsCard {
-    barColor = new formattingSettings.ColorPicker({
-        name: "barColor",
-        displayName: "Bar color",
-        value: { value: "#4A90D9" }
-    });
+class XAxisSettings extends FormattingSettingsCard {
+    show = new formattingSettings.ToggleSwitch({ name: "show", displayName: "Mostrar Eje X", value: true });
+    fontColor = new formattingSettings.ColorPicker({ name: "fontColor", displayName: "Color de texto", value: { value: "#999999" } });
+    fontSize = new formattingSettings.NumUpDown({ name: "fontSize", displayName: "Tamaño de fuente", value: 11 });
+    isBold = new formattingSettings.ToggleSwitch({ name: "isBold", displayName: "Negrita", value: false });
+    isItalic = new formattingSettings.ToggleSwitch({ name: "isItalic", displayName: "Cursiva", value: false });
+    labelAngle = new formattingSettings.NumUpDown({ name: "labelAngle", displayName: "Inclinación (°)", value: 0 });
 
-    textColor = new formattingSettings.ColorPicker({
-        name: "textColor",
-        displayName: "Text color",
-        value: { value: "#444444" }
-    });
+    name: string = "xAxis";
+    displayName: string = "Eje X";
+    slices: Array<FormattingSettingsSlice> = [this.show, this.fontColor, this.fontSize, this.isBold, this.isItalic, this.labelAngle];
+}
 
-    positiveColor = new formattingSettings.ColorPicker({
-        name: "positiveColor",
-        displayName: "Positive bracket color",
-        value: { value: "#27ae60" }
+class YAxisSettings extends FormattingSettingsCard {
+    showGridlines = new formattingSettings.ToggleSwitch({ name: "showGridlines", displayName: "Mostrar Cuadrícula", value: true });
+    gridlineStyle = new formattingSettings.ItemDropdown({
+        name: "gridlineStyle",
+        displayName: "Estilo de cuadrícula",
+        items: [
+            { value: "solid", displayName: "Sólida" },
+            { value: "dashed", displayName: "Discontinua" },
+            { value: "dotted", displayName: "Punteada" }
+        ],
+        value: { value: "solid", displayName: "Sólida" }
     });
+    fontColor = new formattingSettings.ColorPicker({ name: "fontColor", displayName: "Color de texto", value: { value: "#999999" } });
+    fontSize = new formattingSettings.NumUpDown({ name: "fontSize", displayName: "Tamaño de fuente", value: 11 });
 
-    negativeColor = new formattingSettings.ColorPicker({
-        name: "negativeColor",
-        displayName: "Negative bracket color",
-        value: { value: "#e74c3c" }
-    });
+    name: string = "yAxis";
+    displayName: string = "Eje Y";
+    slices: Array<FormattingSettingsSlice> = [this.showGridlines, this.gridlineStyle, this.fontColor, this.fontSize];
+}
 
-    lineThickness = new formattingSettings.NumUpDown({
-        name: "lineThickness",
-        displayName: "Grosor de líneas",
-        value: 1.5
-    });
+class ColumnsSettings extends FormattingSettingsCard {
+    barColor = new formattingSettings.ColorPicker({ name: "barColor", displayName: "Color principal", value: { value: "#4A90D9" } });
+    alternateColors = new formattingSettings.ToggleSwitch({ name: "alternateColors", displayName: "Intercalar colores", value: false });
+    alternateBarColor = new formattingSettings.ColorPicker({ name: "alternateBarColor", displayName: "Color alterno", value: { value: "#85C1E9" } });
+    padding = new formattingSettings.NumUpDown({ name: "padding", displayName: "Espaciado de columnas", value: 0.2 });
 
+    name: string = "columns";
+    displayName: string = "Columnas";
+    slices: Array<FormattingSettingsSlice> = [this.barColor, this.alternateColors, this.alternateBarColor, this.padding];
+}
+
+class DataLabelsSettings extends FormattingSettingsCard {
+    show = new formattingSettings.ToggleSwitch({ name: "show", displayName: "Mostrar Etiquetas", value: true });
+    fontColor = new formattingSettings.ColorPicker({ name: "fontColor", displayName: "Color de texto", value: { value: "#444444" } });
+    fontSize = new formattingSettings.NumUpDown({ name: "fontSize", displayName: "Tamaño de fuente", value: 11 });
+    isBold = new formattingSettings.ToggleSwitch({ name: "isBold", displayName: "Negrita", value: false });
+    isItalic = new formattingSettings.ToggleSwitch({ name: "isItalic", displayName: "Cursiva", value: false });
+    showFullNumbers = new formattingSettings.ToggleSwitch({ name: "showFullNumbers", displayName: "Mostrar números exactos", value: false });
+
+    name: string = "dataLabels";
+    displayName: string = "Etiquetas de datos";
+    slices: Array<FormattingSettingsSlice> = [this.show, this.fontColor, this.fontSize, this.isBold, this.isItalic, this.showFullNumbers];
+}
+
+class ComparisonsSettings extends FormattingSettingsCard {
+    show = new formattingSettings.ToggleSwitch({ name: "show", displayName: "Mostrar Comparaciones", value: true });
+    positiveColor = new formattingSettings.ColorPicker({ name: "positiveColor", displayName: "Color positivo", value: { value: "#27ae60" } });
+    negativeColor = new formattingSettings.ColorPicker({ name: "negativeColor", displayName: "Color negativo", value: { value: "#e74c3c" } });
+    lineThickness = new formattingSettings.NumUpDown({ name: "lineThickness", displayName: "Grosor de líneas", value: 1.5 });
     lineStyle = new formattingSettings.ItemDropdown({
         name: "lineStyle",
         displayName: "Estilo de líneas",
@@ -47,59 +78,28 @@ class DataPointCardSettings extends FormattingSettingsCard {
         ],
         value: { value: "solid", displayName: "Sólida" }
     });
-
     symbolStyle = new formattingSettings.ItemDropdown({
         name: "symbolStyle",
         displayName: "Estilo de símbolo",
         items: [
             { value: "arrows", displayName: "▲ / ▼" },
             { value: "signs", displayName: "+ / -" },
-            { value: "arrows_thin", displayName: "↑ / ↓" }
+            { value: "arrows_thin", "displayName": "↑ / ↓" }
         ],
         value: { value: "arrows", displayName: "▲ / ▼" }
     });
 
-    alternateColors = new formattingSettings.ToggleSwitch({
-        name: "alternateColors",
-        displayName: "Alternar colores",
-        value: false
-    });
-
-    alternateBarColor = new formattingSettings.ColorPicker({
-        name: "alternateBarColor",
-        displayName: "Color alterno",
-        value: { value: "#85C1E9" }
-    });
-
-    showBrackets = new formattingSettings.ToggleSwitch({
-        name: "showBrackets",
-        displayName: "Mostrar comparaciones",
-        value: true
-    });
-
-    fontSize = new formattingSettings.NumUpDown({
-        name: "fontSize",
-        displayName: "Tamaño de fuente",
-        value: 11
-    });
-
-    showFullNumbers = new formattingSettings.ToggleSwitch({
-        name: "showFullNumbers",
-        displayName: "Mostrar números completos",
-        value: false
-    });
-
-    name: string = "dataPoint";
-    displayName: string = "Personalización avanzada";
-    slices: Array<FormattingSettingsSlice> = [
-        this.barColor, this.alternateColors, this.alternateBarColor,
-        this.textColor, this.fontSize, this.showFullNumbers,
-        this.showBrackets, this.positiveColor, this.negativeColor,
-        this.lineThickness, this.lineStyle, this.symbolStyle
-    ];
+    name: string = "comparisons";
+    displayName: string = "Comparaciones";
+    slices: Array<FormattingSettingsSlice> = [this.show, this.positiveColor, this.negativeColor, this.lineThickness, this.lineStyle, this.symbolStyle];
 }
 
 export class VisualFormattingSettingsModel extends FormattingSettingsModel {
-    dataPointCard = new DataPointCardSettings();
-    cards = [this.dataPointCard];
+    xAxis = new XAxisSettings();
+    yAxis = new YAxisSettings();
+    columns = new ColumnsSettings();
+    dataLabels = new DataLabelsSettings();
+    comparisons = new ComparisonsSettings();
+
+    cards = [this.xAxis, this.yAxis, this.columns, this.dataLabels, this.comparisons];
 }

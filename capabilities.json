@@ -12,49 +12,56 @@
         }
     ],
     "objects": {
-        "dataPoint": {
+        "xAxis": {
             "properties": {
-                "barColor": {
+                "show": { "type": { "bool": true } },
+                "fontColor": { "type": { "fill": { "solid": { "color": true } } } },
+                "fontSize": { "type": { "numeric": true } },
+                "isBold": { "type": { "bool": true } },
+                "isItalic": { "type": { "bool": true } },
+                "labelAngle": { "type": { "numeric": true } }
+            }
+        },
+        "yAxis": {
+            "properties": {
+                "showGridlines": { "type": { "bool": true } },
+                "gridlineStyle": {
                     "type": {
-                        "fill": {
-                            "solid": {
-                                "color": true
-                            }
-                        }
+                        "enumeration": [
+                            { "value": "solid", "displayName": "Sólida" },
+                            { "value": "dashed", "displayName": "Discontinua" },
+                            { "value": "dotted", "displayName": "Punteada" }
+                        ]
                     }
                 },
-                "textColor": {
-                    "type": {
-                        "fill": {
-                            "solid": {
-                                "color": true
-                            }
-                        }
-                    }
-                },
-                "positiveColor": {
-                    "type": {
-                        "fill": {
-                            "solid": {
-                                "color": true
-                            }
-                        }
-                    }
-                },
-                "negativeColor": {
-                    "type": {
-                        "fill": {
-                            "solid": {
-                                "color": true
-                            }
-                        }
-                    }
-                },
-                "lineThickness": {
-                    "type": {
-                        "numeric": true
-                    }
-                },
+                "fontColor": { "type": { "fill": { "solid": { "color": true } } } },
+                "fontSize": { "type": { "numeric": true } }
+            }
+        },
+        "columns": {
+            "properties": {
+                "barColor": { "type": { "fill": { "solid": { "color": true } } } },
+                "alternateColors": { "type": { "bool": true } },
+                "alternateBarColor": { "type": { "fill": { "solid": { "color": true } } } },
+                "padding": { "type": { "numeric": true } }
+            }
+        },
+        "dataLabels": {
+            "properties": {
+                "show": { "type": { "bool": true } },
+                "fontColor": { "type": { "fill": { "solid": { "color": true } } } },
+                "fontSize": { "type": { "numeric": true } },
+                "isBold": { "type": { "bool": true } },
+                "isItalic": { "type": { "bool": true } },
+                "showFullNumbers": { "type": { "bool": true } }
+            }
+        },
+        "comparisons": {
+            "properties": {
+                "show": { "type": { "bool": true } },
+                "positiveColor": { "type": { "fill": { "solid": { "color": true } } } },
+                "negativeColor": { "type": { "fill": { "solid": { "color": true } } } },
+                "lineThickness": { "type": { "numeric": true } },
                 "lineStyle": {
                     "type": {
                         "enumeration": [
@@ -71,35 +78,6 @@
                             { "value": "signs", "displayName": "+ / -" },
                             { "value": "arrows_thin", "displayName": "↑ / ↓" }
                         ]
-                    }
-                },
-                "alternateColors": {
-                    "type": {
-                        "bool": true
-                    }
-                },
-                "alternateBarColor": {
-                    "type": {
-                        "fill": {
-                            "solid": {
-                                "color": true
-                            }
-                        }
-                    }
-                },
-                "showBrackets": {
-                    "type": {
-                        "bool": true
-                    }
-                },
-                "fontSize": {
-                    "type": {
-                        "numeric": true
-                    }
-                },
-                "showFullNumbers": {
-                    "type": {
-                        "bool": true
                     }
                 }
             }

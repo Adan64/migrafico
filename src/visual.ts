@@ -77,19 +77,44 @@ export class Visual implements IVisual {
         }
 
         // Extracción de opciones del panel de formato
-        const dpCard = this.formattingSettings.dataPointCard;
-        const barColor = dpCard.barColor.value.value || "#4A90D9";
-        const textColor = dpCard.textColor.value.value || "#444444";
-        const positiveColor = dpCard.positiveColor.value.value || "#27ae60";
-        const negativeColor = dpCard.negativeColor.value.value || "#e74c3c";
-        const lineThickness = dpCard.lineThickness.value;
-        const lineStyle = dpCard.lineStyle.value.value as string;
-        const symbolStyle = dpCard.symbolStyle.value.value as string;
-        const alternateColors = dpCard.alternateColors.value;
-        const alternateBarColor = dpCard.alternateBarColor.value.value || "#85C1E9";
-        const showBrackets = dpCard.showBrackets.value;
-        const fontSize = dpCard.fontSize.value;
-        const showFullNumbers = dpCard.showFullNumbers.value;
+        const xAxis = this.formattingSettings.xAxis;
+        const yAxis = this.formattingSettings.yAxis;
+        const columns = this.formattingSettings.columns;
+        const dataLabels = this.formattingSettings.dataLabels;
+        const comparisonsCard = this.formattingSettings.comparisons;
+
+        const config = {
+            xShow: xAxis.show.value,
+            xFontColor: xAxis.fontColor.value.value || "#999999",
+            xFontSize: xAxis.fontSize.value,
+            xIsBold: xAxis.isBold.value,
+            xIsItalic: xAxis.isItalic.value,
+            xLabelAngle: xAxis.labelAngle.value,
+
+            yShowGridlines: yAxis.showGridlines.value,
+            yGridlineStyle: yAxis.gridlineStyle.value.value as string,
+            yFontColor: yAxis.fontColor.value.value || "#999999",
+            yFontSize: yAxis.fontSize.value,
+
+            colBarColor: columns.barColor.value.value || "#4A90D9",
+            colAlternateColors: columns.alternateColors.value,
+            colAlternateBarColor: columns.alternateBarColor.value.value || "#85C1E9",
+            colPadding: columns.padding.value,
+
+            lblShow: dataLabels.show.value,
+            lblFontColor: dataLabels.fontColor.value.value || "#444444",
+            lblFontSize: dataLabels.fontSize.value,
+            lblIsBold: dataLabels.isBold.value,
+            lblIsItalic: dataLabels.isItalic.value,
+            lblShowFullNumbers: dataLabels.showFullNumbers.value,
+
+            compShow: comparisonsCard.show.value,
+            compPositiveColor: comparisonsCard.positiveColor.value.value || "#27ae60",
+            compNegativeColor: comparisonsCard.negativeColor.value.value || "#e74c3c",
+            compLineThickness: comparisonsCard.lineThickness.value,
+            compLineStyle: comparisonsCard.lineStyle.value.value as string,
+            compSymbolStyle: comparisonsCard.symbolStyle.value.value as string
+        };
 
         const formatNumber = (num: number, full: boolean) => {
             if (full) return num.toLocaleString();
@@ -107,7 +132,7 @@ export class Visual implements IVisual {
                 return {
                     category: String(cat),
                     value: val,
-                    formattedValue: formatNumber(val, showFullNumbers),
+                    formattedValue: formatNumber(val, config.lblShowFullNumbers),
                     index: i,
                     selectionId
                 };
@@ -121,9 +146,9 @@ export class Visual implements IVisual {
             const pct = prev !== 0 ? ((curr - prev) / Math.abs(prev)) * 100 : 0;
             
             let prefix = "";
-            if (symbolStyle === "arrows") prefix = pct >= 0 ? "▲" : "▼";
-            else if (symbolStyle === "signs") prefix = pct >= 0 ? "+" : "-";
-            else if (symbolStyle === "arrows_thin") prefix = pct >= 0 ? "↑" : "↓";
+            if (config.compSymbolStyle === "arrows") prefix = pct >= 0 ? "▲" : "▼";
+            else if (config.compSymbolStyle === "signs") prefix = pct >= 0 ? "+" : "-";
+            else if (config.compSymbolStyle === "arrows_thin") prefix = pct >= 0 ? "↑" : "↓";
 
             comparisons.push({
                 x1: bars[i - 1].category,
@@ -145,29 +170,16 @@ export class Visual implements IVisual {
 
         // Actualización dinámica si el gráfico ya existe
         if (this.vegaResult) {
-            this.vegaResult.view
-                .signal("width", w)
-                .signal("height", h)
-                .signal("barColor", barColor)
-                .signal("textColor", textColor)
-                .signal("positiveColor", positiveColor)
-                .signal("negativeColor", negativeColor)
-                .signal("lineThickness", lineThickness)
-                .signal("lineStyle", lineStyle)
-                .signal("alternateColors", alternateColors)
-                .signal("alternateBarColor", alternateBarColor)
-                .signal("showBrackets", showBrackets)
-                .signal("fontSize", fontSize)
-                .signal("showFullNumbers", showFullNumbers)
-                .signal("yMax", yMax)
-                .data("bars", bars)
-                .data("comparisons", comparisons)
-                .runAsync()
-                .catch(console.error);
+            const view = this.vegaResult.view;
+            view.signal("width", w).signal("height", h).signal("yMax", yMax);
+            for (const [key, value] of Object.entries(config)) {
+                view.signal(key, value);
+            }
+            view.data("bars", bars).data("comparisons", comparisons).runAsync().catch(console.error);
             return;
         }
 
-        const spec = this.buildSpec(bars, comparisons, w, h, yMax, barColor, textColor, positiveColor, negativeColor, lineThickness, lineStyle, alternateColors, alternateBarColor, showBrackets, fontSize, showFullNumbers);
+        const spec = this.buildSpec(bars, comparisons, w, h, yMax, config);
         while (this.container.firstChild) {
             this.container.removeChild(this.container.firstChild);
         }
@@ -194,40 +206,22 @@ export class Visual implements IVisual {
         width: number,
         height: number,
         yMax: number,
-        barColor: string,
-        textColor: string,
-        positiveColor: string,
-        negativeColor: string,
-        lineThickness: number,
-        lineStyle: string,
-        alternateColors: boolean,
-        alternateBarColor: string,
-        showBrackets: boolean,
-        fontSize: number,
-        showFullNumbers: boolean
+        config: any
     ): object {
+        const signals = [
+            { name: "yMax", value: yMax }
+        ];
+        for (const [key, value] of Object.entries(config)) {
+            signals.push({ name: key, value });
+        }
+
         return {
             $schema: "https://vega.github.io/schema/vega/v5.json",
             width: width,
             height: height,
-            autosize: { type: "fit", contains: "padding" },
             padding: 5,
-            background: null,
-
-            signals: [
-                { name: "barColor", value: barColor },
-                { name: "textColor", value: textColor },
-                { name: "positiveColor", value: positiveColor },
-                { name: "negativeColor", value: negativeColor },
-                { name: "lineThickness", value: lineThickness },
-                { name: "lineStyle", value: lineStyle },
-                { name: "alternateColors", value: alternateColors },
-                { name: "alternateBarColor", value: alternateBarColor },
-                { name: "showBrackets", value: showBrackets },
-                { name: "fontSize", value: fontSize },
-                { name: "showFullNumbers", value: showFullNumbers },
-                { name: "yMax", value: yMax }
-            ],
+            autosize: { type: "fit", contains: "padding" },
+            signals: signals,
 
             data: [
                 { name: "bars", values: bars },
@@ -240,8 +234,8 @@ export class Visual implements IVisual {
                     type: "band",
                     domain: { data: "bars", field: "category" },
                     range: "width",
-                    paddingInner: 0.35,
-                    paddingOuter: 0.15
+                    paddingInner: { signal: "colPadding" },
+                    paddingOuter: 0.1
                 },
                 {
                     name: "y",
@@ -256,30 +250,28 @@ export class Visual implements IVisual {
                 {
                     orient: "bottom",
                     scale: "x",
-                    domain: true,
-                    domainColor: "#ccc",
-                    ticks: false,
-                    labelPadding: 8,
-                    labelColor: "#555",
-                    labelFontSize: 12,
-                    labelFont: "Segoe UI, sans-serif",
-                    labelAngle: -35,
-                    labelOverlap: "greedy",
-                    labelAlign: "right"
+                    labels: { signal: "xShow" },
+                    ticks: { signal: "xShow" },
+                    domain: { signal: "xShow" },
+                    labelAngle: { signal: "xLabelAngle" },
+                    labelOverlap: true,
+                    labelColor: { signal: "xFontColor" },
+                    labelFontSize: { signal: "xFontSize" },
+                    labelFontWeight: { signal: "xIsBold ? 'bold' : 'normal'" },
+                    labelFontStyle: { signal: "xIsItalic ? 'italic' : 'normal'" },
+                    labelFont: "Segoe UI, sans-serif"
                 },
                 {
                     orient: "left",
                     scale: "y",
-                    domain: false,
-                    ticks: false,
-                    grid: true,
-                    gridDash: [3, 3],
-                    gridColor: "#e8e8e8",
+                    grid: { signal: "yShowGridlines" },
+                    gridDash: { signal: "yGridlineStyle === 'dashed' ? [6, 4] : yGridlineStyle === 'dotted' ? [2, 3] : []" },
+                    gridColor: "#eee",
                     tickCount: 4,
-                    labelColor: "#999",
-                    labelFontSize: 11,
+                    labelColor: { signal: "yFontColor" },
+                    labelFontSize: { signal: "yFontSize" },
                     labelFont: "Segoe UI, sans-serif",
-                    format: { signal: "showFullNumbers ? ',' : '~s'" }
+                    format: { signal: "lblShowFullNumbers ? ',' : '~s'" }
                 }
             ],
 
@@ -298,7 +290,7 @@ export class Visual implements IVisual {
                             width: { scale: "x", band: 1 },
                             y: { scale: "y", field: "value" },
                             y2: { scale: "y", value: 0 },
-                            fill: { signal: "alternateColors && (datum.index % 2 === 1) ? alternateBarColor : barColor" },
+                            fill: { signal: "colAlternateColors && (datum.index % 2 === 1) ? colAlternateBarColor : colBarColor" },
                             fillOpacity: { value: 1 },
                             tooltip: { signal: "{'Categoría': datum.category, 'Valor': datum.formattedValue}" }
                         },
@@ -313,13 +305,13 @@ export class Visual implements IVisual {
                     encode: {
                         enter: {},
                         update: {
-                            opacity: { signal: "showBrackets ? 1 : 0" },
-                            strokeWidth: { signal: "lineThickness" },
-                            strokeDash: { signal: "lineStyle === 'dashed' ? [6, 4] : lineStyle === 'dotted' ? [2, 3] : []" },
+                            opacity: { signal: "compShow ? 1 : 0" },
+                            strokeWidth: { signal: "compLineThickness" },
+                            strokeDash: { signal: "compLineStyle === 'dashed' ? [6, 4] : compLineStyle === 'dotted' ? [2, 3] : []" },
                             x: { signal: "scale('x', datum.x1) + bandwidth('x') / 2" },
                             x2: { signal: "scale('x', datum.x2) + bandwidth('x') / 2" },
                             y: { signal: "scale('y', datum.maxVal) - 35" },
-                            stroke: { signal: "datum.direction === 'up' ? positiveColor : negativeColor" }
+                            stroke: { signal: "datum.direction === 'up' ? compPositiveColor : compNegativeColor" }
                         }
                     }
                 },
@@ -331,14 +323,14 @@ export class Visual implements IVisual {
                     encode: {
                         enter: {},
                         update: {
-                            opacity: { signal: "showBrackets ? 1 : 0" },
-                            strokeWidth: { signal: "lineThickness" },
-                            strokeDash: { signal: "lineStyle === 'dashed' ? [6, 4] : lineStyle === 'dotted' ? [2, 3] : []" },
+                            opacity: { signal: "compShow ? 1 : 0" },
+                            strokeWidth: { signal: "compLineThickness" },
+                            strokeDash: { signal: "compLineStyle === 'dashed' ? [6, 4] : compLineStyle === 'dotted' ? [2, 3] : []" },
                             x: { signal: "scale('x', datum.x1) + bandwidth('x') / 2" },
                             x2: { signal: "scale('x', datum.x1) + bandwidth('x') / 2" },
                             y: { signal: "scale('y', datum.val1)" },
                             y2: { signal: "scale('y', datum.maxVal) - 35" },
-                            stroke: { signal: "datum.direction === 'up' ? positiveColor : negativeColor" }
+                            stroke: { signal: "datum.direction === 'up' ? compPositiveColor : compNegativeColor" }
                         }
                     }
                 },
@@ -350,14 +342,14 @@ export class Visual implements IVisual {
                     encode: {
                         enter: {},
                         update: {
-                            opacity: { signal: "showBrackets ? 1 : 0" },
-                            strokeWidth: { signal: "lineThickness" },
-                            strokeDash: { signal: "lineStyle === 'dashed' ? [6, 4] : lineStyle === 'dotted' ? [2, 3] : []" },
+                            opacity: { signal: "compShow ? 1 : 0" },
+                            strokeWidth: { signal: "compLineThickness" },
+                            strokeDash: { signal: "compLineStyle === 'dashed' ? [6, 4] : compLineStyle === 'dotted' ? [2, 3] : []" },
                             x: { signal: "scale('x', datum.x2) + bandwidth('x') / 2" },
                             x2: { signal: "scale('x', datum.x2) + bandwidth('x') / 2" },
                             y: { signal: "scale('y', datum.val2)" },
                             y2: { signal: "scale('y', datum.maxVal) - 35" },
-                            stroke: { signal: "datum.direction === 'up' ? positiveColor : negativeColor" }
+                            stroke: { signal: "datum.direction === 'up' ? compPositiveColor : compNegativeColor" }
                         }
                     }
                 },
@@ -375,7 +367,10 @@ export class Visual implements IVisual {
                             font: { value: "Segoe UI, sans-serif" }
                         },
                         update: {
-                            fontSize: { signal: "fontSize" },
+                            opacity: { signal: "lblShow ? 1 : 0" },
+                            fontSize: { signal: "lblFontSize" },
+                            fontWeight: { signal: "lblIsBold ? 'bold' : 'normal'" },
+                            fontStyle: { signal: "lblIsItalic ? 'italic' : 'normal'" },
                             x: { signal: "scale('x', datum.category) + bandwidth('x') / 2" },
                             y: { scale: "y", field: "value", offset: -6 },
                             text: { field: "formattedValue" }
@@ -394,11 +389,14 @@ export class Visual implements IVisual {
                             font: { value: "Segoe UI, sans-serif" }
                         },
                         update: {
-                            fontSize: { signal: "fontSize" },
+                            opacity: { signal: "lblShow ? 1 : 0" },
+                            fontSize: { signal: "lblFontSize" },
+                            fontWeight: { signal: "lblIsBold ? 'bold' : 'normal'" },
+                            fontStyle: { signal: "lblIsItalic ? 'italic' : 'normal'" },
                             x: { signal: "scale('x', datum.category) + bandwidth('x') / 2" },
                             y: { scale: "y", field: "value", offset: -6 },
                             text: { field: "formattedValue" },
-                            fill: { signal: "textColor" }
+                            fill: { signal: "lblFontColor" }
                         }
                     }
                 },
@@ -415,14 +413,14 @@ export class Visual implements IVisual {
                             font: { value: "Segoe UI, sans-serif" }
                         },
                         update: {
-                            opacity: { signal: "showBrackets ? 1 : 0" },
-                            fontSize: { signal: "fontSize" },
+                            opacity: { signal: "compShow ? 1 : 0" },
+                            fontSize: { signal: "lblFontSize" },
                             x: {
                                 signal: "(scale('x', datum.x1) + bandwidth('x') / 2 + scale('x', datum.x2) + bandwidth('x') / 2) / 2"
                             },
                             y: { signal: "scale('y', datum.maxVal) - 40" },
                             text: { field: "label" },
-                            fill: { signal: "datum.direction === 'up' ? positiveColor : negativeColor" }
+                            fill: { signal: "datum.direction === 'up' ? compPositiveColor : compNegativeColor" }
                         }
                     }
                 }
