@@ -1,5 +1,5 @@
 {
-		"version": "1.3.0.0",
+		"version": "1.4.0.0",
 		"author": {"name":"Adan","email":"badan4074@gmail.com"},
 		"resources": [
 			{
@@ -8,7 +8,7 @@
 				"file": "resources/miGraficoD81868EB2C334CF2ABC71E2270886ADB.pbiviz.json"
 			}
 		],
-		"visual": {"name":"miGrafico","displayName":"MiGrafico","guid":"miGraficoD81868EB2C334CF2ABC71E2270886ADB","visualClassName":"Visual","version":"1.3.0.0","description":"Grafico personalizado","supportUrl":"https://github.com/Adan64/migrafico","gitHubUrl":"https://github.com/Adan64/migrafico"},
+		"visual": {"name":"miGrafico","displayName":"MiGrafico","guid":"miGraficoD81868EB2C334CF2ABC71E2270886ADB","visualClassName":"Visual","version":"1.4.0.0","description":"Grafico personalizado","supportUrl":"https://github.com/Adan64/migrafico","gitHubUrl":"https://github.com/Adan64/migrafico"},
 		"metadata": {
 			"pbivizjson": {
 				"resourceId": "rId0"

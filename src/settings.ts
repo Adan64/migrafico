@@ -43,7 +43,7 @@ class ColumnsSettings extends FormattingSettingsCard {
     barColor = new formattingSettings.ColorPicker({ name: "barColor", displayName: "Color principal", value: { value: "#4A90D9" } });
     alternateColors = new formattingSettings.ToggleSwitch({ name: "alternateColors", displayName: "Intercalar colores", value: false });
     alternateBarColor = new formattingSettings.ColorPicker({ name: "alternateBarColor", displayName: "Color alterno", value: { value: "#85C1E9" } });
-    padding = new formattingSettings.NumUpDown({ name: "padding", displayName: "Espaciado de columnas", value: 0.2 });
+    padding = new formattingSettings.NumUpDown({ name: "padding", displayName: "Espaciado (%)", value: 20 });
 
     name: string = "columns";
     displayName: string = "Columnas";
@@ -52,6 +52,15 @@ class ColumnsSettings extends FormattingSettingsCard {
 
 class DataLabelsSettings extends FormattingSettingsCard {
     show = new formattingSettings.ToggleSwitch({ name: "show", displayName: "Mostrar Etiquetas", value: true });
+    position = new formattingSettings.ItemDropdown({
+        name: "position",
+        displayName: "Posición",
+        items: [
+            { value: "outside", displayName: "Exterior superior" },
+            { value: "inside", displayName: "Interior superior" }
+        ],
+        value: { value: "outside", displayName: "Exterior superior" }
+    });
     fontColor = new formattingSettings.ColorPicker({ name: "fontColor", displayName: "Color de texto", value: { value: "#444444" } });
     fontSize = new formattingSettings.NumUpDown({ name: "fontSize", displayName: "Tamaño de fuente", value: 11 });
     isBold = new formattingSettings.ToggleSwitch({ name: "isBold", displayName: "Negrita", value: false });
@@ -60,7 +69,7 @@ class DataLabelsSettings extends FormattingSettingsCard {
 
     name: string = "dataLabels";
     displayName: string = "Etiquetas de datos";
-    slices: Array<FormattingSettingsSlice> = [this.show, this.fontColor, this.fontSize, this.isBold, this.isItalic, this.showFullNumbers];
+    slices: Array<FormattingSettingsSlice> = [this.show, this.position, this.fontColor, this.fontSize, this.isBold, this.isItalic, this.showFullNumbers];
 }
 
 class ComparisonsSettings extends FormattingSettingsCard {

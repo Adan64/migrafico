@@ -33,6 +33,7 @@ declare class ColumnsSettings extends FormattingSettingsCard {
 }
 declare class DataLabelsSettings extends FormattingSettingsCard {
     show: formattingSettings.ToggleSwitch;
+    position: formattingSettings.ItemDropdown;
     fontColor: formattingSettings.ColorPicker;
     fontSize: formattingSettings.NumUpDown;
     isBold: formattingSettings.ToggleSwitch;

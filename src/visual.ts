@@ -99,9 +99,10 @@ export class Visual implements IVisual {
             colBarColor: columns.barColor.value.value || "#4A90D9",
             colAlternateColors: columns.alternateColors.value,
             colAlternateBarColor: columns.alternateBarColor.value.value || "#85C1E9",
-            colPadding: columns.padding.value,
+            colPadding: columns.padding.value / 100,
 
             lblShow: dataLabels.show.value,
+            lblPosition: dataLabels.position.value.value as string,
             lblFontColor: dataLabels.fontColor.value.value || "#444444",
             lblFontSize: dataLabels.fontSize.value,
             lblIsBold: dataLabels.isBold.value,
@@ -250,9 +251,9 @@ export class Visual implements IVisual {
                 {
                     orient: "bottom",
                     scale: "x",
-                    labels: { signal: "xShow" },
-                    ticks: { signal: "xShow" },
-                    domain: { signal: "xShow" },
+                    domainOpacity: { signal: "xShow ? 1 : 0" },
+                    labelOpacity: { signal: "xShow ? 1 : 0" },
+                    tickOpacity: { signal: "xShow ? 1 : 0" },
                     labelAngle: { signal: "xLabelAngle" },
                     labelOverlap: true,
                     labelColor: { signal: "xFontColor" },
@@ -264,7 +265,8 @@ export class Visual implements IVisual {
                 {
                     orient: "left",
                     scale: "y",
-                    grid: { signal: "yShowGridlines" },
+                    grid: true,
+                    gridOpacity: { signal: "yShowGridlines ? 1 : 0" },
                     gridDash: { signal: "yGridlineStyle === 'dashed' ? [6, 4] : yGridlineStyle === 'dotted' ? [2, 3] : []" },
                     gridColor: "#eee",
                     tickCount: 4,
@@ -372,7 +374,7 @@ export class Visual implements IVisual {
                             fontWeight: { signal: "lblIsBold ? 'bold' : 'normal'" },
                             fontStyle: { signal: "lblIsItalic ? 'italic' : 'normal'" },
                             x: { signal: "scale('x', datum.category) + bandwidth('x') / 2" },
-                            y: { scale: "y", field: "value", offset: -6 },
+                            y: { signal: "lblPosition === 'inside' ? scale('y', datum.value) + 14 : scale('y', datum.value) - 6" },
                             text: { field: "formattedValue" }
                         }
                     }
@@ -394,7 +396,7 @@ export class Visual implements IVisual {
                             fontWeight: { signal: "lblIsBold ? 'bold' : 'normal'" },
                             fontStyle: { signal: "lblIsItalic ? 'italic' : 'normal'" },
                             x: { signal: "scale('x', datum.category) + bandwidth('x') / 2" },
-                            y: { scale: "y", field: "value", offset: -6 },
+                            y: { signal: "lblPosition === 'inside' ? scale('y', datum.value) + 14 : scale('y', datum.value) - 6" },
                             text: { field: "formattedValue" },
                             fill: { signal: "lblFontColor" }
                         }

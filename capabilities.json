@@ -49,6 +49,14 @@
         "dataLabels": {
             "properties": {
                 "show": { "type": { "bool": true } },
+                "position": {
+                    "type": {
+                        "enumeration": [
+                            { "value": "outside", "displayName": "Exterior superior" },
+                            { "value": "inside", "displayName": "Interior superior" }
+                        ]
+                    }
+                },
                 "fontColor": { "type": { "fill": { "solid": { "color": true } } } },
                 "fontSize": { "type": { "numeric": true } },
                 "isBold": { "type": { "bool": true } },
