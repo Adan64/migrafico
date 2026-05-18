@@ -27,9 +27,23 @@ interface ComparisonDatum {
     val1: number;
     val2: number;
     maxVal: number;
-    pct: number;
-    direction: "up" | "down";
+    pct: number | null;
+    direction: "up" | "down" | "neutral";
     label: string;
+}
+
+interface VisualConfig {
+    xShow: boolean; xFontColor: string; xFontSize: number;
+    xIsBold: boolean; xIsItalic: boolean; xLabelAngle: number;
+    yShowGridlines: boolean; yGridlineStyle: string;
+    yFontColor: string; yFontSize: number;
+    colBarColor: string; colAlternateColors: boolean;
+    colAlternateBarColor: string; colPadding: number;
+    lblShow: boolean; lblPosition: string; lblFontColor: string;
+    lblFontSize: number; lblIsBold: boolean; lblIsItalic: boolean;
+    lblShowFullNumbers: boolean;
+    compShow: boolean; compPositiveColor: string; compNegativeColor: string;
+    compLineThickness: number; compLineStyle: string; compSymbolStyle: string;
 }
 
 export class Visual implements IVisual {
@@ -99,7 +113,7 @@ export class Visual implements IVisual {
             colBarColor: columns.barColor.value.value || "#4A90D9",
             colAlternateColors: columns.alternateColors.value,
             colAlternateBarColor: columns.alternateBarColor.value.value || "#85C1E9",
-            colPadding: columns.padding.value / 100,
+            colPadding: Math.min(Math.max(columns.padding.value, 0), 95) / 100,
 
             lblShow: dataLabels.show.value,
             lblPosition: dataLabels.position.value.value as string,
@@ -138,18 +152,23 @@ export class Visual implements IVisual {
                     selectionId
                 };
             })
-            .filter(d => d.value !== null && !isNaN(d.value));
+            .filter(d => !isNaN(d.value));
 
         const comparisons: ComparisonDatum[] = [];
         for (let i = 1; i < bars.length; i++) {
             const prev = bars[i - 1].value;
             const curr = bars[i].value;
-            const pct = prev !== 0 ? ((curr - prev) / Math.abs(prev)) * 100 : 0;
-            
+            const pct = prev !== 0 ? ((curr - prev) / Math.abs(prev)) * 100 : null;
+
             let prefix = "";
-            if (config.compSymbolStyle === "arrows") prefix = pct >= 0 ? "▲" : "▼";
-            else if (config.compSymbolStyle === "signs") prefix = pct >= 0 ? "+" : "-";
-            else if (config.compSymbolStyle === "arrows_thin") prefix = pct >= 0 ? "↑" : "↓";
+            if (pct !== null) {
+                if (config.compSymbolStyle === "arrows") prefix = pct >= 0 ? "▲" : "▼";
+                else if (config.compSymbolStyle === "signs") prefix = pct >= 0 ? "+" : "-";
+                else if (config.compSymbolStyle === "arrows_thin") prefix = pct >= 0 ? "↑" : "↓";
+            }
+
+            const direction = pct === null ? "neutral" : pct >= 0 ? "up" : "down";
+            const label = pct === null ? "N/A" : `${prefix} ${Math.abs(pct).toFixed(0)}%`;
 
             comparisons.push({
                 x1: bars[i - 1].category,
@@ -158,8 +177,8 @@ export class Visual implements IVisual {
                 val2: curr,
                 maxVal: Math.max(prev, curr),
                 pct,
-                direction: pct >= 0 ? "up" : "down",
-                label: `${prefix} ${Math.abs(pct).toFixed(0)}%`
+                direction,
+                label
             });
         }
 
@@ -207,10 +226,11 @@ export class Visual implements IVisual {
         width: number,
         height: number,
         yMax: number,
-        config: any
+        config: VisualConfig
     ): object {
         const signals: any[] = [
-            { name: "yMax", value: yMax }
+            { name: "yMax", value: yMax },
+            { name: "bracketOffset", update: "lblFontSize * 3" }
         ];
         for (const [key, value] of Object.entries(config)) {
             signals.push({ name: key, value });
@@ -312,8 +332,8 @@ export class Visual implements IVisual {
                             strokeDash: { signal: "compLineStyle === 'dashed' ? [6, 4] : compLineStyle === 'dotted' ? [2, 3] : []" },
                             x: { signal: "scale('x', datum.x1) + bandwidth('x') / 2" },
                             x2: { signal: "scale('x', datum.x2) + bandwidth('x') / 2" },
-                            y: { signal: "scale('y', datum.maxVal) - 35" },
-                            stroke: { signal: "datum.direction === 'up' ? compPositiveColor : compNegativeColor" }
+                            y: { signal: "scale('y', datum.maxVal) - bracketOffset" },
+                            stroke: { signal: "datum.direction === 'neutral' ? '#888888' : (datum.direction === 'up' ? compPositiveColor : compNegativeColor)" }
                         }
                     }
                 },
@@ -331,8 +351,8 @@ export class Visual implements IVisual {
                             x: { signal: "scale('x', datum.x1) + bandwidth('x') / 2" },
                             x2: { signal: "scale('x', datum.x1) + bandwidth('x') / 2" },
                             y: { signal: "scale('y', datum.val1)" },
-                            y2: { signal: "scale('y', datum.maxVal) - 35" },
-                            stroke: { signal: "datum.direction === 'up' ? compPositiveColor : compNegativeColor" }
+                            y2: { signal: "scale('y', datum.maxVal) - bracketOffset" },
+                            stroke: { signal: "datum.direction === 'neutral' ? '#888888' : (datum.direction === 'up' ? compPositiveColor : compNegativeColor)" }
                         }
                     }
                 },
@@ -350,8 +370,8 @@ export class Visual implements IVisual {
                             x: { signal: "scale('x', datum.x2) + bandwidth('x') / 2" },
                             x2: { signal: "scale('x', datum.x2) + bandwidth('x') / 2" },
                             y: { signal: "scale('y', datum.val2)" },
-                            y2: { signal: "scale('y', datum.maxVal) - 35" },
-                            stroke: { signal: "datum.direction === 'up' ? compPositiveColor : compNegativeColor" }
+                            y2: { signal: "scale('y', datum.maxVal) - bracketOffset" },
+                            stroke: { signal: "datum.direction === 'neutral' ? '#888888' : (datum.direction === 'up' ? compPositiveColor : compNegativeColor)" }
                         }
                     }
                 },
@@ -420,9 +440,9 @@ export class Visual implements IVisual {
                             x: {
                                 signal: "(scale('x', datum.x1) + bandwidth('x') / 2 + scale('x', datum.x2) + bandwidth('x') / 2) / 2"
                             },
-                            y: { signal: "scale('y', datum.maxVal) - 40" },
+                            y: { signal: "scale('y', datum.maxVal) - bracketOffset - 5" },
                             text: { field: "label" },
-                            fill: { signal: "datum.direction === 'up' ? compPositiveColor : compNegativeColor" }
+                            fill: { signal: "datum.direction === 'neutral' ? '#888888' : (datum.direction === 'up' ? compPositiveColor : compNegativeColor)" }
                         }
                     }
                 }
