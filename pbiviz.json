@@ -5,7 +5,7 @@
     "guid": "miGraficoD81868EB2C334CF2ABC71E2270886ADB",
     "visualClassName": "Visual",
     "version": "1.4.1.0",
-    "description": "Grafico personalizado",
+    "description": "Bar chart with period-over-period comparisons. Displays brackets between adjacent bars showing percentage change, with customizable colors, labels, axes, and line styles.",
     "supportUrl": "https://github.com/Adan64/migrafico",
     "gitHubUrl": "https://github.com/Adan64/migrafico"
   },
