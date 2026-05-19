@@ -81,13 +81,28 @@ export class Visual implements IVisual {
     }
 
     public update(options: VisualUpdateOptions) {
+        const dataView = options.dataViews?.[0];
+        
+        if (!dataView) {
+            this.container.innerHTML = `
+                <div style="padding: 20px; text-align: center; font-family: 'Segoe UI', sans-serif; color: #777; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                    <h3 style="margin-bottom: 8px;">Esperando datos</h3>
+                    <p style="font-size: 14px; margin: 0;">Por favor, añade un campo en <b>Categoría</b> y un campo en <b>Valor</b> en el panel de datos.</p>
+                </div>
+            `;
+            if (this.vegaResult) {
+                this.vegaResult.view.finalize();
+                this.vegaResult = null;
+            }
+            return;
+        }
+
         this.formattingSettings = this.formattingSettingsService.populateFormattingSettingsModel(
             VisualFormattingSettingsModel,
-            options.dataViews[0]
+            dataView
         );
 
-        const dataView = options.dataViews?.[0];
-        const categorical = dataView?.categorical;
+        const categorical = dataView.categorical;
         const categories = categorical?.categories?.[0];
         const measureSeries = categorical?.values?.find(v => v.source.roles?.["measure"]);
         const targetSeries  = categorical?.values?.find(v => v.source.roles?.["target"]);
@@ -95,7 +110,6 @@ export class Visual implements IVisual {
 
         // Manejo del estado sin datos
         if (!categorical || !categories || !measureSeries || !categories.values?.length || !measureSeries.values?.length) {
-            // eslint-disable-next-line powerbi-visuals/no-inner-outer-html
             this.container.innerHTML = `
                 <div style="padding: 20px; text-align: center; font-family: 'Segoe UI', sans-serif; color: #777; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center;">
                     <h3 style="margin-bottom: 8px;">Esperando datos</h3>
@@ -229,9 +243,9 @@ export class Visual implements IVisual {
             })
             .filter(d => !isNaN(d.value));
 
-        // Calcular ranking por valor descendente
-        const sorted = [...bars].sort((a, b) => b.value - a.value);
-        sorted.forEach((b, i) => {
+        // Calcular ranking por valor descendente sin alterar el orden original de bars
+        const sortedForRanking = [...bars].sort((a, b) => b.value - a.value);
+        sortedForRanking.forEach((b, i) => {
             b.rank = i + 1;
             b.rankLabel = toOrdinal(i + 1);
         });

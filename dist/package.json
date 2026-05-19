@@ -1,5 +1,5 @@
 {
-		"version": "1.5.1.0",
+		"version": "1.5.4.0",
 		"author": {"name":"Adan","email":"badan4074@gmail.com"},
 		"resources": [
 			{
@@ -8,7 +8,7 @@
 				"file": "resources/miGraficoD81868EB2C334CF2ABC71E2270886ADB.pbiviz.json"
 			}
 		],
-		"visual": {"name":"miGrafico","displayName":"MiGrafico","guid":"miGraficoD81868EB2C334CF2ABC71E2270886ADB","visualClassName":"Visual","version":"1.5.1.0","description":"Bar chart with period-over-period comparisons. Displays brackets between adjacent bars showing percentage change, with customizable colors, labels, axes, and line styles.","supportUrl":"https://github.com/Adan64/migrafico","gitHubUrl":"https://github.com/Adan64/migrafico"},
+		"visual": {"name":"miGrafico","displayName":"MiGrafico","guid":"miGraficoD81868EB2C334CF2ABC71E2270886ADB","visualClassName":"Visual","version":"1.5.4.0","description":"Bar chart with period-over-period comparisons. Displays brackets between adjacent bars showing percentage change, with customizable colors, labels, axes, and line styles.","supportUrl":"https://github.com/Adan64/migrafico","gitHubUrl":"https://github.com/Adan64/migrafico"},
 		"metadata": {
 			"pbivizjson": {
 				"resourceId": "rId0"

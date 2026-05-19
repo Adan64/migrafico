@@ -155,20 +155,6 @@
             "conditions": [
                 {
                     "category": { "max": 1 },
-                    "measure": { "max": 1 }
-                },
-                {
-                    "category": { "max": 1 },
-                    "measure": { "max": 1 },
-                    "target": { "max": 1 }
-                },
-                {
-                    "category": { "max": 1 },
-                    "measure": { "max": 1 },
-                    "annotation": { "max": 1 }
-                },
-                {
-                    "category": { "max": 1 },
                     "measure": { "max": 1 },
                     "target": { "max": 1 },
                     "annotation": { "max": 1 }
@@ -189,5 +175,8 @@
             }
         }
     ],
+    "sorting": {
+        "default": {}
+    },
     "privileges": []
 }
