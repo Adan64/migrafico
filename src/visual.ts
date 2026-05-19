@@ -53,7 +53,7 @@ interface VisualConfig {
     compShow: boolean; compPositiveColor: string; compNegativeColor: string;
     compLineThickness: number; compLineStyle: string; compSymbolStyle: string;
     compShowAbsoluteDiff: boolean;
-    tgtShow: boolean; tgtLineColor: string; tgtLineThickness: number; tgtLineStyle: string;
+    tgtShow: boolean; tgtFixedValue: number; tgtLineColor: string; tgtLineThickness: number; tgtLineStyle: string;
     tgtShowCompliancePct: boolean; tgtComplianceFontSize: number;
     tgtConditionalLabels: boolean; tgtAboveTargetColor: string; tgtBelowTargetColor: string;
     tgtShowConditionalIcon: boolean;
@@ -154,6 +154,7 @@ export class Visual implements IVisual {
             compShowAbsoluteDiff: comparisonsCard.showAbsoluteDiff.value,
 
             tgtShow: targetLineCard.show.value,
+            tgtFixedValue: targetLineCard.fixedValue.value,
             tgtLineColor: targetLineCard.lineColor.value.value || "#e74c3c",
             tgtLineThickness: targetLineCard.lineThickness.value,
             tgtLineStyle: targetLineCard.lineStyle.value.value as string,
@@ -201,7 +202,9 @@ export class Visual implements IVisual {
                     .withCategory(categories, i)
                     .createSelectionId();
                 const val    = Number(measureSeries.values[i]) || 0;
-                const target = targetSeries ? (Number(targetSeries.values[i]) || null) : null;
+                const target = targetSeries
+                    ? (Number(targetSeries.values[i]) || null)
+                    : (config.tgtFixedValue > 0 ? config.tgtFixedValue : null);
                 const annRaw = annotationSeries ? String(annotationSeries.values[i] ?? "").trim() : "";
                 const status: BarDatum["status"] = target !== null
                     ? val > target ? "above" : val < target ? "below" : "at"
@@ -267,7 +270,7 @@ export class Visual implements IVisual {
         const w = Math.max(options.viewport.width - 10, 10);
         const h = Math.max(options.viewport.height - 10, 10);
         const maxValue  = Math.max(...bars.map(b => b.value));
-        const maxTarget = targetSeries ? Math.max(...bars.map(b => b.target ?? 0)) : 0;
+        const maxTarget = Math.max(...bars.map(b => b.target ?? 0));
         const yMax = Math.max(maxValue, maxTarget) > 0 ? Math.max(maxValue, maxTarget) * 1.50 : 10;
 
         // Actualización dinámica si el gráfico ya existe
@@ -420,14 +423,14 @@ export class Visual implements IVisual {
                     }
                 },
 
-                // F4: Badge de ranking (rect fondo)
+                // F4: Badge de ranking ENCIMA de la barra (rect fondo)
                 {
                     type: "rect",
                     from: { data: "bars" },
                     encode: {
                         update: {
                             x: { signal: "scale('x', datum.category) + bandwidth('x') / 2 - 16" },
-                            y: { signal: "scale('y', datum.value) + 3" },
+                            y: { signal: "scale('y', datum.value) - 20" },
                             width: { value: 32 },
                             height: { value: 16 },
                             fill: { signal: "rankBadgeColor" },
@@ -450,7 +453,7 @@ export class Visual implements IVisual {
                         },
                         update: {
                             x: { signal: "scale('x', datum.category) + bandwidth('x') / 2" },
-                            y: { signal: "scale('y', datum.value) + 11" },
+                            y: { signal: "scale('y', datum.value) - 12" },
                             text: { field: "rankLabel" },
                             fill: { signal: "rankFontColor" },
                             fontSize: { signal: "rankFontSize" },
@@ -620,21 +623,21 @@ export class Visual implements IVisual {
                     }
                 },
 
-                // F1: Diferencia absoluta bajo el %
+                // F1: Diferencia absoluta ENCIMA del % (una línea más arriba)
                 {
                     type: "text",
                     from: { data: "comparisons" },
                     encode: {
                         enter: {
                             align: { value: "center" },
-                            baseline: { value: "top" },
+                            baseline: { value: "bottom" },
                             font: { value: "Segoe UI, sans-serif" }
                         },
                         update: {
                             opacity: { signal: "compShow && compShowAbsoluteDiff ? 1 : 0" },
                             fontSize: { signal: "lblFontSize - 1" },
                             x: { signal: "(scale('x', datum.x1) + bandwidth('x') / 2 + scale('x', datum.x2) + bandwidth('x') / 2) / 2" },
-                            y: { signal: "scale('y', datum.maxVal) - bracketOffset - 4" },
+                            y: { signal: "scale('y', datum.maxVal) - bracketOffset - 5 - lblFontSize" },
                             text: { field: "labelAbs" },
                             fill: { signal: "datum.direction === 'neutral' ? '#888888' : (datum.direction === 'up' ? compPositiveColor : compNegativeColor)" }
                         }
@@ -658,7 +661,7 @@ export class Visual implements IVisual {
                     }
                 },
 
-                // F6: Texto de anotación
+                // F6: Texto de anotación (con límite de ancho para no desbordar)
                 {
                     type: "text",
                     from: { data: "bars" },
@@ -674,6 +677,7 @@ export class Visual implements IVisual {
                             text: { field: "annotation" },
                             fill: { signal: "annFontColor" },
                             fontSize: { signal: "annFontSize" },
+                            limit: { signal: "max(bandwidth('x') - 6, 10)" },
                             opacity: { signal: "annShow && datum.annotation !== null ? 1 : 0" }
                         }
                     }

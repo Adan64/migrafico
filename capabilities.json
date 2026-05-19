@@ -104,6 +104,7 @@
         "targetLine": {
             "properties": {
                 "show": { "type": { "bool": true } },
+                "fixedValue": { "type": { "numeric": true } },
                 "lineColor": { "type": { "fill": { "solid": { "color": true } } } },
                 "lineThickness": { "type": { "numeric": true } },
                 "lineStyle": {

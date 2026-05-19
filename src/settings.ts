@@ -106,6 +106,7 @@ class ComparisonsSettings extends FormattingSettingsCard {
 
 class TargetLineSettings extends FormattingSettingsCard {
     show = new formattingSettings.ToggleSwitch({ name: "show", displayName: "Mostrar línea de meta", value: false });
+    fixedValue = new formattingSettings.NumUpDown({ name: "fixedValue", displayName: "Meta fija (si no hay campo)", value: 0 });
     lineColor = new formattingSettings.ColorPicker({ name: "lineColor", displayName: "Color de línea", value: { value: "#e74c3c" } });
     lineThickness = new formattingSettings.NumUpDown({ name: "lineThickness", displayName: "Grosor", value: 2 });
     lineStyle = new formattingSettings.ItemDropdown({
@@ -128,7 +129,7 @@ class TargetLineSettings extends FormattingSettingsCard {
     name: string = "targetLine";
     displayName: string = "Línea de meta";
     slices: Array<FormattingSettingsSlice> = [
-        this.show, this.lineColor, this.lineThickness, this.lineStyle,
+        this.show, this.fixedValue, this.lineColor, this.lineThickness, this.lineStyle,
         this.showCompliancePct, this.complianceFontSize,
         this.conditionalLabels, this.aboveTargetColor, this.belowTargetColor, this.showConditionalIcon
     ];

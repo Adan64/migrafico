@@ -57,6 +57,7 @@ declare class ComparisonsSettings extends FormattingSettingsCard {
 }
 declare class TargetLineSettings extends FormattingSettingsCard {
     show: formattingSettings.ToggleSwitch;
+    fixedValue: formattingSettings.NumUpDown;
     lineColor: formattingSettings.ColorPicker;
     lineThickness: formattingSettings.NumUpDown;
     lineStyle: formattingSettings.ItemDropdown;
