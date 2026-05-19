@@ -50,6 +50,50 @@ declare class ComparisonsSettings extends FormattingSettingsCard {
     lineThickness: formattingSettings.NumUpDown;
     lineStyle: formattingSettings.ItemDropdown;
     symbolStyle: formattingSettings.ItemDropdown;
+    showAbsoluteDiff: formattingSettings.ToggleSwitch;
+    name: string;
+    displayName: string;
+    slices: Array<FormattingSettingsSlice>;
+}
+declare class TargetLineSettings extends FormattingSettingsCard {
+    show: formattingSettings.ToggleSwitch;
+    lineColor: formattingSettings.ColorPicker;
+    lineThickness: formattingSettings.NumUpDown;
+    lineStyle: formattingSettings.ItemDropdown;
+    showCompliancePct: formattingSettings.ToggleSwitch;
+    complianceFontSize: formattingSettings.NumUpDown;
+    conditionalLabels: formattingSettings.ToggleSwitch;
+    aboveTargetColor: formattingSettings.ColorPicker;
+    belowTargetColor: formattingSettings.ColorPicker;
+    showConditionalIcon: formattingSettings.ToggleSwitch;
+    name: string;
+    displayName: string;
+    slices: Array<FormattingSettingsSlice>;
+}
+declare class RankingSettings extends FormattingSettingsCard {
+    show: formattingSettings.ToggleSwitch;
+    fontColor: formattingSettings.ColorPicker;
+    fontSize: formattingSettings.NumUpDown;
+    badgeColor: formattingSettings.ColorPicker;
+    name: string;
+    displayName: string;
+    slices: Array<FormattingSettingsSlice>;
+}
+declare class AlertZoneSettings extends FormattingSettingsCard {
+    show: formattingSettings.ToggleSwitch;
+    threshold: formattingSettings.NumUpDown;
+    fillColor: formattingSettings.ColorPicker;
+    fillOpacity: formattingSettings.NumUpDown;
+    aboveThreshold: formattingSettings.ToggleSwitch;
+    name: string;
+    displayName: string;
+    slices: Array<FormattingSettingsSlice>;
+}
+declare class AnnotationsSettings extends FormattingSettingsCard {
+    show: formattingSettings.ToggleSwitch;
+    fontColor: formattingSettings.ColorPicker;
+    fontSize: formattingSettings.NumUpDown;
+    backgroundColor: formattingSettings.ColorPicker;
     name: string;
     displayName: string;
     slices: Array<FormattingSettingsSlice>;
@@ -60,6 +104,10 @@ export declare class VisualFormattingSettingsModel extends FormattingSettingsMod
     columns: ColumnsSettings;
     dataLabels: DataLabelsSettings;
     comparisons: ComparisonsSettings;
-    cards: (XAxisSettings | YAxisSettings | ColumnsSettings | DataLabelsSettings | ComparisonsSettings)[];
+    targetLine: TargetLineSettings;
+    ranking: RankingSettings;
+    alertZone: AlertZoneSettings;
+    annotations: AnnotationsSettings;
+    cards: (XAxisSettings | YAxisSettings | ColumnsSettings | DataLabelsSettings | ComparisonsSettings | TargetLineSettings | RankingSettings | AlertZoneSettings | AnnotationsSettings)[];
 }
 export {};

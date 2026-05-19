@@ -9,6 +9,16 @@
             "displayName": "Measure",
             "name": "measure",
             "kind": "Measure"
+        },
+        {
+            "displayName": "Objetivo / Meta",
+            "name": "target",
+            "kind": "Measure"
+        },
+        {
+            "displayName": "Anotación",
+            "name": "annotation",
+            "kind": "Measure"
         }
     ],
     "objects": {
@@ -87,7 +97,55 @@
                             { "value": "arrows_thin", "displayName": "↑ / ↓" }
                         ]
                     }
-                }
+                },
+                "showAbsoluteDiff": { "type": { "bool": true } }
+            }
+        },
+        "targetLine": {
+            "properties": {
+                "show": { "type": { "bool": true } },
+                "lineColor": { "type": { "fill": { "solid": { "color": true } } } },
+                "lineThickness": { "type": { "numeric": true } },
+                "lineStyle": {
+                    "type": {
+                        "enumeration": [
+                            { "value": "solid", "displayName": "Sólida" },
+                            { "value": "dashed", "displayName": "Discontinua" },
+                            { "value": "dotted", "displayName": "Punteada" }
+                        ]
+                    }
+                },
+                "showCompliancePct": { "type": { "bool": true } },
+                "complianceFontSize": { "type": { "numeric": true } },
+                "conditionalLabels": { "type": { "bool": true } },
+                "aboveTargetColor": { "type": { "fill": { "solid": { "color": true } } } },
+                "belowTargetColor": { "type": { "fill": { "solid": { "color": true } } } },
+                "showConditionalIcon": { "type": { "bool": true } }
+            }
+        },
+        "ranking": {
+            "properties": {
+                "show": { "type": { "bool": true } },
+                "fontColor": { "type": { "fill": { "solid": { "color": true } } } },
+                "fontSize": { "type": { "numeric": true } },
+                "badgeColor": { "type": { "fill": { "solid": { "color": true } } } }
+            }
+        },
+        "alertZone": {
+            "properties": {
+                "show": { "type": { "bool": true } },
+                "threshold": { "type": { "numeric": true } },
+                "fillColor": { "type": { "fill": { "solid": { "color": true } } } },
+                "fillOpacity": { "type": { "numeric": true } },
+                "aboveThreshold": { "type": { "bool": true } }
+            }
+        },
+        "annotations": {
+            "properties": {
+                "show": { "type": { "bool": true } },
+                "fontColor": { "type": { "fill": { "solid": { "color": true } } } },
+                "fontSize": { "type": { "numeric": true } },
+                "backgroundColor": { "type": { "fill": { "solid": { "color": true } } } }
             }
         }
     },
@@ -99,7 +157,11 @@
                     "dataReductionAlgorithm": { "top": {} }
                 },
                 "values": {
-                    "select": [{ "bind": { "to": "measure" } }]
+                    "select": [
+                        { "bind": { "to": "measure" } },
+                        { "bind": { "to": "target" } },
+                        { "bind": { "to": "annotation" } }
+                    ]
                 }
             }
         }

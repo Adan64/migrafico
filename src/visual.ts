@@ -19,6 +19,12 @@ interface BarDatum {
     formattedValue: string;
     index: number;
     selectionId: ISelectionId;
+    target: number | null;
+    annotation: string | null;
+    rank: number;
+    rankLabel: string;
+    status: "above" | "below" | "at" | "none";
+    iconPrefix: string;
 }
 
 interface ComparisonDatum {
@@ -30,6 +36,8 @@ interface ComparisonDatum {
     pct: number | null;
     direction: "up" | "down" | "neutral";
     label: string;
+    diff: number;
+    labelAbs: string;
 }
 
 interface VisualConfig {
@@ -44,11 +52,20 @@ interface VisualConfig {
     lblShowFullNumbers: boolean;
     compShow: boolean; compPositiveColor: string; compNegativeColor: string;
     compLineThickness: number; compLineStyle: string; compSymbolStyle: string;
+    compShowAbsoluteDiff: boolean;
+    tgtShow: boolean; tgtLineColor: string; tgtLineThickness: number; tgtLineStyle: string;
+    tgtShowCompliancePct: boolean; tgtComplianceFontSize: number;
+    tgtConditionalLabels: boolean; tgtAboveTargetColor: string; tgtBelowTargetColor: string;
+    tgtShowConditionalIcon: boolean;
+    rankShow: boolean; rankFontColor: string; rankFontSize: number; rankBadgeColor: string;
+    alertShow: boolean; alertThreshold: number; alertFillColor: string;
+    alertFillOpacity: number; alertAbove: boolean;
+    annShow: boolean; annFontColor: string; annFontSize: number; annBackgroundColor: string;
 }
 
 export class Visual implements IVisual {
     private container: HTMLElement;
-    private formattingSettings: VisualFormattingSettingsModel;
+    private formattingSettings!: VisualFormattingSettingsModel;
     private formattingSettingsService: FormattingSettingsService;
     private vegaResult: Result | null = null;
     private selectionManager: ISelectionManager;
@@ -72,10 +89,12 @@ export class Visual implements IVisual {
         const dataView = options.dataViews?.[0];
         const categorical = dataView?.categorical;
         const categories = categorical?.categories?.[0];
-        const values = categorical?.values?.[0];
+        const measureSeries = categorical?.values?.find(v => v.source.roles?.["measure"]);
+        const targetSeries  = categorical?.values?.find(v => v.source.roles?.["target"]);
+        const annotationSeries = categorical?.values?.find(v => v.source.roles?.["annotation"]);
 
         // Manejo del estado sin datos
-        if (!categorical || !categories || !values || !categories.values || !values.values || categories.values.length === 0 || values.values.length === 0) {
+        if (!categorical || !categories || !measureSeries || !categories.values?.length || !measureSeries.values?.length) {
             // eslint-disable-next-line powerbi-visuals/no-inner-outer-html
             this.container.innerHTML = `
                 <div style="padding: 20px; text-align: center; font-family: 'Segoe UI', sans-serif; color: #777; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center;">
@@ -90,14 +109,17 @@ export class Visual implements IVisual {
             return;
         }
 
-        // Extracción de opciones del panel de formato
-        const xAxis = this.formattingSettings.xAxis;
-        const yAxis = this.formattingSettings.yAxis;
-        const columns = this.formattingSettings.columns;
-        const dataLabels = this.formattingSettings.dataLabels;
-        const comparisonsCard = this.formattingSettings.comparisons;
+        const xAxis          = this.formattingSettings.xAxis;
+        const yAxis          = this.formattingSettings.yAxis;
+        const columns        = this.formattingSettings.columns;
+        const dataLabels     = this.formattingSettings.dataLabels;
+        const comparisonsCard  = this.formattingSettings.comparisons;
+        const targetLineCard   = this.formattingSettings.targetLine;
+        const rankingCard      = this.formattingSettings.ranking;
+        const alertZoneCard    = this.formattingSettings.alertZone;
+        const annotationsCard  = this.formattingSettings.annotations;
 
-        const config = {
+        const config: VisualConfig = {
             xShow: xAxis.show.value,
             xFontColor: xAxis.fontColor.value.value || "#999999",
             xFontSize: xAxis.fontSize.value,
@@ -128,7 +150,35 @@ export class Visual implements IVisual {
             compNegativeColor: comparisonsCard.negativeColor.value.value || "#e74c3c",
             compLineThickness: comparisonsCard.lineThickness.value,
             compLineStyle: comparisonsCard.lineStyle.value.value as string,
-            compSymbolStyle: comparisonsCard.symbolStyle.value.value as string
+            compSymbolStyle: comparisonsCard.symbolStyle.value.value as string,
+            compShowAbsoluteDiff: comparisonsCard.showAbsoluteDiff.value,
+
+            tgtShow: targetLineCard.show.value,
+            tgtLineColor: targetLineCard.lineColor.value.value || "#e74c3c",
+            tgtLineThickness: targetLineCard.lineThickness.value,
+            tgtLineStyle: targetLineCard.lineStyle.value.value as string,
+            tgtShowCompliancePct: targetLineCard.showCompliancePct.value,
+            tgtComplianceFontSize: targetLineCard.complianceFontSize.value,
+            tgtConditionalLabels: targetLineCard.conditionalLabels.value,
+            tgtAboveTargetColor: targetLineCard.aboveTargetColor.value.value || "#27ae60",
+            tgtBelowTargetColor: targetLineCard.belowTargetColor.value.value || "#e74c3c",
+            tgtShowConditionalIcon: targetLineCard.showConditionalIcon.value,
+
+            rankShow: rankingCard.show.value,
+            rankFontColor: rankingCard.fontColor.value.value || "#ffffff",
+            rankFontSize: rankingCard.fontSize.value,
+            rankBadgeColor: rankingCard.badgeColor.value.value || "#2c3e50",
+
+            alertShow: alertZoneCard.show.value,
+            alertThreshold: alertZoneCard.threshold.value,
+            alertFillColor: alertZoneCard.fillColor.value.value || "#e74c3c",
+            alertFillOpacity: Math.min(Math.max(alertZoneCard.fillOpacity.value, 0), 100),
+            alertAbove: alertZoneCard.aboveThreshold.value,
+
+            annShow: annotationsCard.show.value,
+            annFontColor: annotationsCard.fontColor.value.value || "#555555",
+            annFontSize: annotationsCard.fontSize.value,
+            annBackgroundColor: annotationsCard.backgroundColor.value.value || "#fff9c4"
         };
 
         const formatNumber = (num: number, full: boolean) => {
@@ -138,37 +188,67 @@ export class Visual implements IVisual {
             return num.toString();
         };
 
+        const toOrdinal = (r: number): string => {
+            if (r === 1) return "1er";
+            if (r === 2) return "2do";
+            if (r === 3) return "3er";
+            return `${r}°`;
+        };
+
         const bars: BarDatum[] = categories.values
             .map((cat, i) => {
                 const selectionId = this.host.createSelectionIdBuilder()
                     .withCategory(categories, i)
                     .createSelectionId();
-                const val = Number(values.values[i]) || 0;
+                const val    = Number(measureSeries.values[i]) || 0;
+                const target = targetSeries ? (Number(targetSeries.values[i]) || null) : null;
+                const annRaw = annotationSeries ? String(annotationSeries.values[i] ?? "").trim() : "";
+                const status: BarDatum["status"] = target !== null
+                    ? val > target ? "above" : val < target ? "below" : "at"
+                    : "none";
+                const iconPrefix = config.tgtShowConditionalIcon && status !== "none"
+                    ? status === "above" ? "✓" : status === "below" ? "✗" : "="
+                    : "";
                 return {
                     category: String(cat),
                     value: val,
                     formattedValue: formatNumber(val, config.lblShowFullNumbers),
                     index: i,
-                    selectionId
+                    selectionId,
+                    target,
+                    annotation: annRaw || null,
+                    rank: 0,
+                    rankLabel: "",
+                    status,
+                    iconPrefix
                 };
             })
             .filter(d => !isNaN(d.value));
+
+        // Calcular ranking por valor descendente
+        const sorted = [...bars].sort((a, b) => b.value - a.value);
+        sorted.forEach((b, i) => {
+            b.rank = i + 1;
+            b.rankLabel = toOrdinal(i + 1);
+        });
 
         const comparisons: ComparisonDatum[] = [];
         for (let i = 1; i < bars.length; i++) {
             const prev = bars[i - 1].value;
             const curr = bars[i].value;
-            const pct = prev !== 0 ? ((curr - prev) / Math.abs(prev)) * 100 : null;
+            const pct  = prev !== 0 ? ((curr - prev) / Math.abs(prev)) * 100 : null;
+            const diff = curr - prev;
 
             let prefix = "";
             if (pct !== null) {
-                if (config.compSymbolStyle === "arrows") prefix = pct >= 0 ? "▲" : "▼";
-                else if (config.compSymbolStyle === "signs") prefix = pct >= 0 ? "+" : "-";
+                if (config.compSymbolStyle === "arrows")      prefix = pct >= 0 ? "▲" : "▼";
+                else if (config.compSymbolStyle === "signs")  prefix = pct >= 0 ? "+" : "-";
                 else if (config.compSymbolStyle === "arrows_thin") prefix = pct >= 0 ? "↑" : "↓";
             }
 
             const direction = pct === null ? "neutral" : pct >= 0 ? "up" : "down";
-            const label = pct === null ? "N/A" : `${prefix} ${Math.abs(pct).toFixed(0)}%`;
+            const label    = pct === null ? "N/A" : `${prefix} ${Math.abs(pct).toFixed(0)}%`;
+            const labelAbs = (diff >= 0 ? "+" : "") + formatNumber(diff, config.lblShowFullNumbers);
 
             comparisons.push({
                 x1: bars[i - 1].category,
@@ -178,15 +258,17 @@ export class Visual implements IVisual {
                 maxVal: Math.max(prev, curr),
                 pct,
                 direction,
-                label
+                label,
+                diff,
+                labelAbs
             });
         }
 
-        // Restamos unos pocos píxeles para asegurar que no salgan barras de desplazamiento
         const w = Math.max(options.viewport.width - 10, 10);
         const h = Math.max(options.viewport.height - 10, 10);
-        const maxValue = Math.max(...bars.map(b => b.value));
-        const yMax = maxValue > 0 ? maxValue * 1.35 : 10;
+        const maxValue  = Math.max(...bars.map(b => b.value));
+        const maxTarget = targetSeries ? Math.max(...bars.map(b => b.target ?? 0)) : 0;
+        const yMax = Math.max(maxValue, maxTarget) > 0 ? Math.max(maxValue, maxTarget) * 1.50 : 10;
 
         // Actualización dinámica si el gráfico ya existe
         if (this.vegaResult) {
@@ -205,10 +287,10 @@ export class Visual implements IVisual {
         }
 
         embed(this.container, spec as any, { actions: false, renderer: "svg" })
-            .then(result => { 
-                this.vegaResult = result; 
-                result.view.addEventListener('click', (event, item) => {
-                    if (item && item.datum && item.datum.selectionId) {
+            .then(result => {
+                this.vegaResult = result;
+                result.view.addEventListener("click", (event, item) => {
+                    if (item?.datum?.selectionId) {
                         const selectionId = item.datum.selectionId as ISelectionId;
                         const multiSelect = (event as MouseEvent).ctrlKey || (event as MouseEvent).metaKey || (event as MouseEvent).shiftKey;
                         this.selectionManager.select(selectionId, multiSelect);
@@ -236,13 +318,16 @@ export class Visual implements IVisual {
             signals.push({ name: key, value });
         }
 
+        const strokeDashExpr = (signalName: string) =>
+            `${signalName} === 'dashed' ? [6, 4] : ${signalName} === 'dotted' ? [2, 3] : []`;
+
         return {
             $schema: "https://vega.github.io/schema/vega/v5.json",
-            width: width,
-            height: height,
+            width,
+            height,
             padding: 5,
             autosize: { type: "fit", contains: "padding" },
-            signals: signals,
+            signals,
 
             data: [
                 { name: "bars", values: bars },
@@ -287,7 +372,7 @@ export class Visual implements IVisual {
                     scale: "y",
                     grid: true,
                     gridOpacity: { signal: "yShowGridlines ? 1 : 0" },
-                    gridDash: { signal: "yGridlineStyle === 'dashed' ? [6, 4] : yGridlineStyle === 'dotted' ? [2, 3] : []" },
+                    gridDash: { signal: strokeDashExpr("yGridlineStyle") },
                     gridColor: "#eee",
                     tickCount: 4,
                     labelColor: { signal: "yFontColor" },
@@ -298,6 +383,21 @@ export class Visual implements IVisual {
             ],
 
             marks: [
+                // F5: Zona de alerta (fondo, antes de barras)
+                {
+                    type: "rect",
+                    encode: {
+                        update: {
+                            x: { value: 0 },
+                            x2: { signal: "width" },
+                            y: { signal: "alertAbove ? 0 : scale('y', alertThreshold)" },
+                            y2: { signal: "alertAbove ? scale('y', alertThreshold) : height" },
+                            fill: { signal: "alertFillColor" },
+                            fillOpacity: { signal: "alertShow ? alertFillOpacity / 100 : 0" }
+                        }
+                    }
+                },
+
                 // Barras
                 {
                     type: "rect",
@@ -320,16 +420,93 @@ export class Visual implements IVisual {
                     }
                 },
 
-                // Línea horizontal del bracket entre barras
+                // F4: Badge de ranking (rect fondo)
+                {
+                    type: "rect",
+                    from: { data: "bars" },
+                    encode: {
+                        update: {
+                            x: { signal: "scale('x', datum.category) + bandwidth('x') / 2 - 16" },
+                            y: { signal: "scale('y', datum.value) + 3" },
+                            width: { value: 32 },
+                            height: { value: 16 },
+                            fill: { signal: "rankBadgeColor" },
+                            cornerRadius: { value: 3 },
+                            opacity: { signal: "rankShow ? 1 : 0" }
+                        }
+                    }
+                },
+
+                // F4: Badge de ranking (texto)
+                {
+                    type: "text",
+                    from: { data: "bars" },
+                    encode: {
+                        enter: {
+                            align: { value: "center" },
+                            baseline: { value: "middle" },
+                            fontWeight: { value: "bold" },
+                            font: { value: "Segoe UI, sans-serif" }
+                        },
+                        update: {
+                            x: { signal: "scale('x', datum.category) + bandwidth('x') / 2" },
+                            y: { signal: "scale('y', datum.value) + 11" },
+                            text: { field: "rankLabel" },
+                            fill: { signal: "rankFontColor" },
+                            fontSize: { signal: "rankFontSize" },
+                            opacity: { signal: "rankShow ? 1 : 0" }
+                        }
+                    }
+                },
+
+                // F2: Línea de meta (rule por barra)
+                {
+                    type: "rule",
+                    from: { data: "bars" },
+                    encode: {
+                        update: {
+                            x: { scale: "x", field: "category" },
+                            x2: { signal: "scale('x', datum.category) + bandwidth('x')" },
+                            y: { signal: "datum.target !== null ? scale('y', datum.target) : -9999" },
+                            stroke: { signal: "tgtLineColor" },
+                            strokeWidth: { signal: "tgtLineThickness" },
+                            strokeDash: { signal: strokeDashExpr("tgtLineStyle") },
+                            opacity: { signal: "tgtShow && datum.target !== null ? 1 : 0" }
+                        }
+                    }
+                },
+
+                // F2: % Cumplimiento sobre la línea de meta
+                {
+                    type: "text",
+                    from: { data: "bars" },
+                    encode: {
+                        enter: {
+                            align: { value: "center" },
+                            baseline: { value: "bottom" },
+                            fontWeight: { value: "600" },
+                            font: { value: "Segoe UI, sans-serif" }
+                        },
+                        update: {
+                            x: { signal: "scale('x', datum.category) + bandwidth('x') / 2" },
+                            y: { signal: "datum.target !== null ? scale('y', datum.target) - 3 : -9999" },
+                            text: { signal: "tgtShowCompliancePct && datum.target !== null && datum.target !== 0 ? round(datum.value / datum.target * 100) + '%' : ''" },
+                            fill: { signal: "tgtLineColor" },
+                            fontSize: { signal: "tgtComplianceFontSize" },
+                            opacity: { signal: "tgtShow && tgtShowCompliancePct && datum.target !== null ? 1 : 0" }
+                        }
+                    }
+                },
+
+                // Línea horizontal del bracket
                 {
                     type: "rule",
                     from: { data: "comparisons" },
                     encode: {
-                        enter: {},
                         update: {
                             opacity: { signal: "compShow ? 1 : 0" },
                             strokeWidth: { signal: "compLineThickness" },
-                            strokeDash: { signal: "compLineStyle === 'dashed' ? [6, 4] : compLineStyle === 'dotted' ? [2, 3] : []" },
+                            strokeDash: { signal: strokeDashExpr("compLineStyle") },
                             x: { signal: "scale('x', datum.x1) + bandwidth('x') / 2" },
                             x2: { signal: "scale('x', datum.x2) + bandwidth('x') / 2" },
                             y: { signal: "scale('y', datum.maxVal) - bracketOffset" },
@@ -338,16 +515,15 @@ export class Visual implements IVisual {
                     }
                 },
 
-                // Línea vertical izquierda del bracket (toca la barra 1)
+                // Línea vertical izquierda del bracket
                 {
                     type: "rule",
                     from: { data: "comparisons" },
                     encode: {
-                        enter: {},
                         update: {
                             opacity: { signal: "compShow ? 1 : 0" },
                             strokeWidth: { signal: "compLineThickness" },
-                            strokeDash: { signal: "compLineStyle === 'dashed' ? [6, 4] : compLineStyle === 'dotted' ? [2, 3] : []" },
+                            strokeDash: { signal: strokeDashExpr("compLineStyle") },
                             x: { signal: "scale('x', datum.x1) + bandwidth('x') / 2" },
                             x2: { signal: "scale('x', datum.x1) + bandwidth('x') / 2" },
                             y: { signal: "scale('y', datum.val1)" },
@@ -357,16 +533,15 @@ export class Visual implements IVisual {
                     }
                 },
 
-                // Línea vertical derecha del bracket (toca la barra 2)
+                // Línea vertical derecha del bracket
                 {
                     type: "rule",
                     from: { data: "comparisons" },
                     encode: {
-                        enter: {},
                         update: {
                             opacity: { signal: "compShow ? 1 : 0" },
                             strokeWidth: { signal: "compLineThickness" },
-                            strokeDash: { signal: "compLineStyle === 'dashed' ? [6, 4] : compLineStyle === 'dotted' ? [2, 3] : []" },
+                            strokeDash: { signal: strokeDashExpr("compLineStyle") },
                             x: { signal: "scale('x', datum.x2) + bandwidth('x') / 2" },
                             x2: { signal: "scale('x', datum.x2) + bandwidth('x') / 2" },
                             y: { signal: "scale('y', datum.val2)" },
@@ -376,7 +551,7 @@ export class Visual implements IVisual {
                     }
                 },
 
-                // Fondo blanco para la etiqueta de valor sobre cada barra (evita que la línea lo tache)
+                // Fondo blanco para etiqueta de valor (evita que línea del bracket la tache)
                 {
                     type: "text",
                     from: { data: "bars" },
@@ -395,12 +570,12 @@ export class Visual implements IVisual {
                             fontStyle: { signal: "lblIsItalic ? 'italic' : 'normal'" },
                             x: { signal: "scale('x', datum.category) + bandwidth('x') / 2" },
                             y: { signal: "lblPosition === 'inside' ? scale('y', datum.value) + 14 : scale('y', datum.value) - 6" },
-                            text: { field: "formattedValue" }
+                            text: { signal: "datum.iconPrefix ? datum.iconPrefix + ' ' + datum.formattedValue : datum.formattedValue" }
                         }
                     }
                 },
 
-                // Etiqueta de valor sobre cada barra
+                // F3: Etiqueta de valor con colores condicionales
                 {
                     type: "text",
                     from: { data: "bars" },
@@ -417,13 +592,13 @@ export class Visual implements IVisual {
                             fontStyle: { signal: "lblIsItalic ? 'italic' : 'normal'" },
                             x: { signal: "scale('x', datum.category) + bandwidth('x') / 2" },
                             y: { signal: "lblPosition === 'inside' ? scale('y', datum.value) + 14 : scale('y', datum.value) - 6" },
-                            text: { field: "formattedValue" },
-                            fill: { signal: "lblFontColor" }
+                            text: { signal: "datum.iconPrefix ? datum.iconPrefix + ' ' + datum.formattedValue : datum.formattedValue" },
+                            fill: { signal: "tgtConditionalLabels && datum.status !== 'none' ? (datum.status === 'above' ? tgtAboveTargetColor : datum.status === 'below' ? tgtBelowTargetColor : '#888888') : lblFontColor" }
                         }
                     }
                 },
 
-                // Etiqueta de porcentaje (▲/▼ + %)
+                // F1: Etiqueta % del bracket
                 {
                     type: "text",
                     from: { data: "comparisons" },
@@ -437,12 +612,69 @@ export class Visual implements IVisual {
                         update: {
                             opacity: { signal: "compShow ? 1 : 0" },
                             fontSize: { signal: "lblFontSize" },
-                            x: {
-                                signal: "(scale('x', datum.x1) + bandwidth('x') / 2 + scale('x', datum.x2) + bandwidth('x') / 2) / 2"
-                            },
+                            x: { signal: "(scale('x', datum.x1) + bandwidth('x') / 2 + scale('x', datum.x2) + bandwidth('x') / 2) / 2" },
                             y: { signal: "scale('y', datum.maxVal) - bracketOffset - 5" },
                             text: { field: "label" },
                             fill: { signal: "datum.direction === 'neutral' ? '#888888' : (datum.direction === 'up' ? compPositiveColor : compNegativeColor)" }
+                        }
+                    }
+                },
+
+                // F1: Diferencia absoluta bajo el %
+                {
+                    type: "text",
+                    from: { data: "comparisons" },
+                    encode: {
+                        enter: {
+                            align: { value: "center" },
+                            baseline: { value: "top" },
+                            font: { value: "Segoe UI, sans-serif" }
+                        },
+                        update: {
+                            opacity: { signal: "compShow && compShowAbsoluteDiff ? 1 : 0" },
+                            fontSize: { signal: "lblFontSize - 1" },
+                            x: { signal: "(scale('x', datum.x1) + bandwidth('x') / 2 + scale('x', datum.x2) + bandwidth('x') / 2) / 2" },
+                            y: { signal: "scale('y', datum.maxVal) - bracketOffset - 4" },
+                            text: { field: "labelAbs" },
+                            fill: { signal: "datum.direction === 'neutral' ? '#888888' : (datum.direction === 'up' ? compPositiveColor : compNegativeColor)" }
+                        }
+                    }
+                },
+
+                // F6: Fondo de anotación
+                {
+                    type: "rect",
+                    from: { data: "bars" },
+                    encode: {
+                        update: {
+                            x: { signal: "scale('x', datum.category) + 2" },
+                            x2: { signal: "scale('x', datum.category) + bandwidth('x') - 2" },
+                            y: { signal: "scale('y', 0) - 20" },
+                            y2: { signal: "scale('y', 0) - 2" },
+                            fill: { signal: "annBackgroundColor" },
+                            cornerRadius: { value: 2 },
+                            opacity: { signal: "annShow && datum.annotation !== null ? 0.9 : 0" }
+                        }
+                    }
+                },
+
+                // F6: Texto de anotación
+                {
+                    type: "text",
+                    from: { data: "bars" },
+                    encode: {
+                        enter: {
+                            align: { value: "center" },
+                            baseline: { value: "middle" },
+                            font: { value: "Segoe UI, sans-serif" }
+                        },
+                        update: {
+                            x: { signal: "scale('x', datum.category) + bandwidth('x') / 2" },
+                            y: { signal: "scale('y', 0) - 11" },
+                            text: { field: "annotation" },
+                            fill: { signal: "annFontColor" },
+                            fontSize: { signal: "annFontSize" },
+                            opacity: { signal: "annShow && datum.annotation !== null ? 1 : 0" }
                         }
                     }
                 }
