@@ -97,7 +97,7 @@ class ComparisonsSettings extends FormattingSettingsCard {
         ],
         value: { value: "arrows", displayName: "▲ / ▼" }
     });
-    showAbsoluteDiff = new formattingSettings.ToggleSwitch({ name: "showAbsoluteDiff", displayName: "Mostrar diferencia absoluta", value: false });
+    showAbsoluteDiff = new formattingSettings.ToggleSwitch({ name: "showAbsoluteDiff", displayName: "Mostrar diferencia absoluta", value: true });
 
     name: string = "comparisons";
     displayName: string = "Comparaciones";
@@ -105,7 +105,7 @@ class ComparisonsSettings extends FormattingSettingsCard {
 }
 
 class TargetLineSettings extends FormattingSettingsCard {
-    show = new formattingSettings.ToggleSwitch({ name: "show", displayName: "Mostrar línea de meta", value: false });
+    show = new formattingSettings.ToggleSwitch({ name: "show", displayName: "Mostrar línea de meta", value: true });
     fixedValue = new formattingSettings.NumUpDown({ name: "fixedValue", displayName: "Meta fija (si no hay campo)", value: 0 });
     lineColor = new formattingSettings.ColorPicker({ name: "lineColor", displayName: "Color de línea", value: { value: "#e74c3c" } });
     lineThickness = new formattingSettings.NumUpDown({ name: "lineThickness", displayName: "Grosor", value: 2 });
@@ -136,7 +136,7 @@ class TargetLineSettings extends FormattingSettingsCard {
 }
 
 class RankingSettings extends FormattingSettingsCard {
-    show = new formattingSettings.ToggleSwitch({ name: "show", displayName: "Mostrar ranking", value: false });
+    show = new formattingSettings.ToggleSwitch({ name: "show", displayName: "Mostrar ranking", value: true });
     fontColor = new formattingSettings.ColorPicker({ name: "fontColor", displayName: "Color de texto", value: { value: "#ffffff" } });
     fontSize = new formattingSettings.NumUpDown({ name: "fontSize", displayName: "Tamaño de fuente", value: 10 });
     badgeColor = new formattingSettings.ColorPicker({ name: "badgeColor", displayName: "Color de badge", value: { value: "#2c3e50" } });
@@ -147,8 +147,8 @@ class RankingSettings extends FormattingSettingsCard {
 }
 
 class AlertZoneSettings extends FormattingSettingsCard {
-    show = new formattingSettings.ToggleSwitch({ name: "show", displayName: "Mostrar zona de alerta", value: false });
-    threshold = new formattingSettings.NumUpDown({ name: "threshold", displayName: "Umbral", value: 0 });
+    show = new formattingSettings.ToggleSwitch({ name: "show", displayName: "Mostrar zona de alerta", value: true });
+    threshold = new formattingSettings.NumUpDown({ name: "threshold", displayName: "Umbral", value: 100 });
     fillColor = new formattingSettings.ColorPicker({ name: "fillColor", displayName: "Color de zona", value: { value: "#e74c3c" } });
     fillOpacity = new formattingSettings.NumUpDown({ name: "fillOpacity", displayName: "Opacidad (0-100)", value: 15 });
     aboveThreshold = new formattingSettings.ToggleSwitch({ name: "aboveThreshold", displayName: "Sombrear por encima", value: false });

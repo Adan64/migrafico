@@ -202,8 +202,9 @@ export class Visual implements IVisual {
                     .withCategory(categories, i)
                     .createSelectionId();
                 const val    = Number(measureSeries.values[i]) || 0;
-                const target = targetSeries
-                    ? (Number(targetSeries.values[i]) || null)
+                const targetVal = targetSeries?.values[i];
+                const target = targetVal != null && targetVal !== ""
+                    ? Number(targetVal)
                     : (config.tgtFixedValue > 0 ? config.tgtFixedValue : null);
                 const annRaw = annotationSeries ? String(annotationSeries.values[i] ?? "").trim() : "";
                 const status: BarDatum["status"] = target !== null
@@ -637,7 +638,7 @@ export class Visual implements IVisual {
                             opacity: { signal: "compShow && compShowAbsoluteDiff ? 1 : 0" },
                             fontSize: { signal: "lblFontSize - 1" },
                             x: { signal: "(scale('x', datum.x1) + bandwidth('x') / 2 + scale('x', datum.x2) + bandwidth('x') / 2) / 2" },
-                            y: { signal: "scale('y', datum.maxVal) - bracketOffset - 5 - lblFontSize" },
+                            y: { signal: "scale('y', datum.maxVal) - bracketOffset - 5 - lblFontSize * 1.2" },
                             text: { field: "labelAbs" },
                             fill: { signal: "datum.direction === 'neutral' ? '#888888' : (datum.direction === 'up' ? compPositiveColor : compNegativeColor)" }
                         }
@@ -656,7 +657,8 @@ export class Visual implements IVisual {
                             y2: { signal: "scale('y', 0) - 2" },
                             fill: { signal: "annBackgroundColor" },
                             cornerRadius: { value: 2 },
-                            opacity: { signal: "annShow && datum.annotation !== null ? 0.9 : 0" }
+                            opacity: { signal: "annShow && datum.annotation !== null ? 0.9 : 0" },
+                            tooltip: { signal: "datum.annotation" }
                         }
                     }
                 },
@@ -678,7 +680,8 @@ export class Visual implements IVisual {
                             fill: { signal: "annFontColor" },
                             fontSize: { signal: "annFontSize" },
                             limit: { signal: "max(bandwidth('x') - 6, 10)" },
-                            opacity: { signal: "annShow && datum.annotation !== null ? 1 : 0" }
+                            opacity: { signal: "annShow && datum.annotation !== null ? 1 : 0" },
+                            tooltip: { signal: "datum.annotation" }
                         }
                     }
                 }
